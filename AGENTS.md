@@ -69,177 +69,22 @@ CatHouse 采用分层架构设计，将渲染、物理、状态管理分离，�
 └─────────┘ └───────────┘ └─────────────┘
 ```
 
-### 数据流
+### 核心类说明
 
-#### 1. 初始化流程
+项目采用面向对象设计，主要包含以下核心类：
 
-```
-main.js
-  ↓ 创建 Vue App
-  ↓ 安装 Pinia
-App.vue
-  ↓ 渲染
-GameCanvas.vue
-  ↓ onMounted
-  ├→ 创建 PhysicsEngine
-  ├→ 创建 Renderer
-  ├→ 加载地图配置
-  ├→ 创建墙壁刚体
-  ├→ 创建猫实体和刚体
-  └→ 启动游戏循环
-```
-
-#### 2. 游戏循环流程
-
-```
-requestAnimationFrame(gameLoop)
-  ↓
-计算 deltaTime
-  ↓
-更新物理引擎 (physicsEngine.update)
-  ↓
-更新猫的状态 (cat.update)
-  ├→ 同步物理位置
-  ├→ 更新动画帧
-  └→ 处理移动逻辑
-  ↓
-渲染场景 (render)
-  ├→ 清空画布
-  ├→ 绘制背景
-  ├→ 绘制房间
-  ├→ 绘制墙壁
-  ├→ 绘制猫
-  └→ 绘制 UI
-  ↓
-下一帧
-```
-
-#### 3. 用户交互流程
-
-##### 点击移动
-```
-用户点击空白区域
-  ↓
-handleMouseDown 事件
-  ↓
-检测是否点击到猫
-  ↓ 否
-获取选中猫
-  ↓
-cat.moveTo(targetX, targetY)
-  ↓
-游戏循环中更新猫位置
-  ↓
-物理引擎施加力
-  ↓
-猫移动到目标点
-```
-
-##### 拖拽猫
-```
-用户按下猫
-  ↓
-handleMouseDown 事件
-  ↓
-检测到猫 → isDragging = true
-  ↓
-handleMouseMove 事件
-  ↓
-physicsEngine.setPosition()
-  ↓
-直接设置刚体位置
-  ↓
-用户释放鼠标
-  ↓
-handleMouseUp 事件
-  ↓
-isDragging = false
-```
-
-### 核心类关系
-
-#### Cat 类
-```javascript
-Cat {
-  // 属性
-  - id, name, colorConfig
-  - x, y, rotation, scale
-  - state, animationFrame
-  - body (Matter.Body)
-  - targetX, targetY
-  
-  // 方法
-  + update(deltaTime)
-  + moveTo(x, y)
-  + stop()
-  + syncFromBody()
-}
-```
-
-#### PhysicsEngine 类
-```javascript
-PhysicsEngine {
-  // 属性
-  - engine (Matter.Engine)
-  - world (Matter.World)
-  - collisionCallbacks[]
-  
-  // 方法
-  + update(deltaTime)
-  + createWall(x, y, w, h)
-  + createCatBody(x, y, radius)
-  + applyForce(body, fx, fy)
-  + setPosition(body, x, y)
-  + onCollision(callback)
-}
-```
-
-#### Renderer 类
-```javascript
-Renderer {
-  // 属性
-  - canvas
-  - ctx (CanvasRenderingContext2D)
-  - width, height
-  - fps
-  
-  // 方法
-  + resize(w, h)
-  + clear()
-  + drawBackground()
-  + drawRoom(room)
-  + drawWall(x, y, w, h)
-  + drawCat(cat, isSelected)
-  + drawFPS()
-}
-```
+- **Cat** - 猫实体类，负责管理猫的状态、行为和动画
+- **PhysicsEngine** - 物理引擎封装类，基于 Matter.js 提供物理模拟能力
+- **Renderer** - 渲染器类，使用 Canvas API 进行场景绘制
 
 ### 状态管理
 
-#### Pinia Store 结构
-
-```javascript
-gameStore {
-  // State
-  - cats: Cat[]
-  - mapConfig: Object
-  - isRunning: boolean
-  - selectedCatId: string | null
-  - isEditing: boolean
-  - showDebug: boolean
-  
-  // Getters
-  + selectedCat: Cat
-  
-  // Actions
-  + addCat(cat)
-  + removeCat(catId)
-  + updateCatPosition(catId, x, y)
-  + selectCat(catId)
-  + toggleRunning()
-  + toggleDebug()
-}
-```
+使用 Pinia 进行全局状态管理，主要包括：
+- 猫实体集合管理
+- 地图配置信息
+- 游戏运行状态
+- 选中猫的状态
+- 编辑模式和调试模式开关
 
 ### 渲染架构
 
@@ -252,38 +97,17 @@ gameStore {
 5. **UI 层** - 名称标签、状态气泡
 6. **调试层** - FPS、碰撞体（可选）
 
-#### 深度排序
+#### 深度排序原则
 
-```javascript
-// 按 Y 坐标排序，Y 越大越靠前（后渲染）
-const sortedCats = [...cats].sort((a, b) => a.y - b.y)
-sortedCats.forEach(cat => renderer.drawCat(cat))
-```
+按 Y 坐标排序实现伪 3D 效果，Y 值越大越靠前（后渲染），确保正确的遮挡关系。
 
 ### 物理系统配置
 
-#### Matter.js 参数
+#### Matter.js 配置原则
 
-```javascript
-// 引擎配置
-engine.gravity.x = 0  // 俯视角无重力
-engine.gravity.y = 0
-
-// 墙壁刚体
-{
-  isStatic: true,      // 静态不可移动
-  friction: 0.5,       // 摩擦力
-  restitution: 0       // 无反弹
-}
-
-// 猫刚体
-{
-  friction: 0.3,       // 摩擦力
-  frictionAir: 0.05,   // 空气阻力
-  restitution: 0.2,    // 轻微反弹
-  density: 0.001       // 密度
-}
-```
+- **重力设置**：俯视角游戏，禁用重力（x=0, y=0）
+- **墙壁刚体**：静态不可移动，适当摩擦力和无反弹
+- **猫刚体**：动态刚体，适度摩擦力、空气阻力和轻微反弹，密度适中
 
 ### 交互系统
 
@@ -294,18 +118,9 @@ engine.gravity.y = 0
 - **mouseup** - 结束拖拽
 - **resize** - 窗口尺寸变化
 
-#### 点击检测
+#### 点击检测原则
 
-```javascript
-// 距离检测（圆形碰撞体）
-const dx = mouseX - cat.x
-const dy = mouseY - cat.y
-const distance = Math.sqrt(dx * dx + dy * dy)
-
-if (distance < 30) {
-  // 点击到猫
-}
-```
+使用距离检测算法判断鼠标是否点击到猫，基于圆形碰撞体计算鼠标位置与猫中心的距离。
 
 ### 性能优化策略
 
