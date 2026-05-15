@@ -2,8 +2,6 @@
 
 本文档包含项目的技术架构、快速启动指南和项目总结，供 AI Agent 参考。
 
----
-
 ## 📋 文档维护规则
 
 **重要约束**：项目只维护以下 4 个核心文档，除非用户明确告知，否则不要创建其他文档文件。
@@ -44,7 +42,31 @@
 - 不要在已有文档或其他位置重复文档的内容
 - 除非用户明确要求，否则不要创建新的文档文件
 
----
+## 🛠️ 技术栈
+
+### 核心框架
+- **UI 框架**: SvelteKit + Svelte 5 (Runes)
+- **状态管理**: Svelte Stores / Context API
+- **路由**: SvelteKit File-based Routing
+
+### 渲染与物理
+- **2D 渲染**: HTML5 Canvas API
+- **物理引擎**: Matter.js
+- **行为系统**: 自定义状态机
+
+### 开发工具
+- **包管理器**: pnpm
+- **构建工具**: Vite
+- **类型检查**: TypeScript
+- **测试框架**: Vitest + Testing Library
+
+### 推荐 VS Code 插件
+- Svelte for VS Code
+- ESLint
+- Prettier
+- GitLens
+
+## 🏗️ 技术架构
 
 ### 渲染架构
 
@@ -78,50 +100,28 @@
 - **mouseup** - 结束拖拽
 - **resize** - 窗口尺寸变化
 
-### 扩展方向
+### 调试技巧
 
-#### Phase 2: 行为系统
+- Chrome DevTools Performance 面板分析 FPS
+- Console 打印碰撞事件
+- 启用调试模式显示碰撞体
+- Vitest UI 界面查看测试结果
+
+## 🚀 扩展方向
+
+### Phase 2: 行为系统
 - 添加行为状态机
 - 实现寻路算法（A*）
 - 情绪/需求系统
 - 地图编辑器
 
-#### Phase 3: 传感器集成
+### Phase 3: 传感器集成
 - WebSocket 通信
 - MQTT 消息订阅
 - 事件日志系统（IndexedDB）
 
-#### Phase 4: 高级功能
+### Phase 4: 高级功能
 - 多用户模式
 - 云同步
 - AR 叠加
 - 机器学习行为分析
-
-### 开发工具
-
-#### 推荐 VS Code 插件
-- Vue Language Features (Volar)
-- ESLint
-- Prettier
-- GitLens
-
-#### 调试技巧
-- Chrome DevTools Performance 面板分析 FPS
-- Console 打印碰撞事件
-- 启用调试模式显示碰撞体
-
-## 🛠️ 技术栈
-
-### 核心工具
-- **包管理器**: pnpm
-- **Node.js**: v22.x
-- **构建工具**: Vite
-
-### 前端框架
-- **UI 框架**: Vue 3 (Composition API)
-- **状态管理**: Pinia
-
-### 渲染与物理
-- **2D 渲染**: HTML5 Canvas API
-- **物理引擎**: Matter.js
-- **行为系统**: 自定义状态机
