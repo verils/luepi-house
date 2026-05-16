@@ -1,6 +1,6 @@
 # CatHouse
 
-一个基于 SvelteKit 的虚拟猫咪互动应用。
+一个基于 SvelteKit 的电子宠物猫咪应用。
 
 ## 🚀 快速开始
 
