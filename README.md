@@ -1,6 +1,6 @@
 # CatHouse
 
-一个基于 SvelteKit 的电子宠物猫咪应用。
+一个基于 Svelte 5 的电子宠物猫咪应用。
 
 ## 🚀 快速开始
 
@@ -48,18 +48,16 @@ pnpm test:coverage  # 生成覆盖率报告
 ```
 cat-house/
 ├── src/
-│   ├── lib/          # 共享库代码
-│   ├── routes/       # SvelteKit 路由页面
-│   ├── components/   # 可复用组件
-│   └── assets/       # 静态资源
+│   ├── lib/          # 共享库代码（assets、game 核心逻辑）
+│   ├── App.svelte    # 根组件
+│   └── main.ts       # 应用入口
 ├── static/           # 公共静态文件
-├── tests/            # 测试文件
 └── ...
 ```
 
 ## 🛠️ 技术栈
 
-- **框架**: SvelteKit + Svelte 5 (Runes)
+- **框架**: Svelte 5 (Runes)
 - **语言**: TypeScript
 - **构建工具**: Vite
 - **包管理器**: pnpm

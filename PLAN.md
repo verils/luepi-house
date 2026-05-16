@@ -28,7 +28,7 @@
 
 ##### Phase 1.1: 项目初始化与环境搭建（预计 1-2 天）🔄 待开始
 
-**目标**: 搭建 SvelteKit + Svelte 5 项目框架，配置开发环境。
+**目标**: 搭建 Svelte 5 + Vite 项目框架，配置开发环境。
 
 **任务清单**:
 - [ ] 使用 pnpm 初始化项目
@@ -46,15 +46,11 @@
   ├── src/
   │   ├── lib/
   │   │   ├── assets/         # 静态资源
-  │   │   ├── core/           # 核心逻辑（Canvas、物理、猫实体）
-  │   │   ├── stores/         # Svelte Stores 状态管理
-  │   │   └── utils/          # 工具函数
-  │   ├── routes/             # SvelteKit 路由页面
-  │   ├── app.html            # HTML 模板
-  │   └── app.d.ts            # 类型声明
+  │   │   └── game/           # 游戏核心逻辑（Canvas、物理、猫实体）
+  │   ├── App.svelte          # 根组件
+  │   └── main.ts             # 应用入口
   ├── static/                 # 静态公共资源
   ├── package.json
-  ├── svelte.config.js        # SvelteKit 配置
   ├── vite.config.ts          # Vite 配置
   ├── tsconfig.json           # TypeScript 配置
   ├── PLAN.md                # 开发计划
@@ -68,7 +64,7 @@
 
 **验收标准**:
 - ⬜ `pnpm dev` 能正常启动开发服务器
-- ⬜ 浏览器访问 localhost 显示 SvelteKit 欢迎页面
+- ⬜ 浏览器访问 localhost 显示 Svelte 欢迎页面或自定义内容
 - ⬜ Git 仓库初始化完成，首次提交成功
 
 ---

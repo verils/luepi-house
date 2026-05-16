@@ -55,6 +55,5 @@
 - **测试框架**: Vitest + Testing Library
 
 ### UI 框架
-- **SvelteKit + Svelte 5 (Runes)** - 现代响应式UI框架
+- **Svelte 5 (Runes)** - 现代响应式UI框架
 - **状态管理**: Svelte Stores / Context API
-- **路由系统**: SvelteKit File-based Routing
