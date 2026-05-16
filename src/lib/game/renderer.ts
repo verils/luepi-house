@@ -1,16 +1,17 @@
 import type { GameState, Tile, Wall, House, Cat } from './types';
-import { TILE_SIZE, WALL_THICKNESS } from './types';
+import { TILE_SIZE, WALL_THICKNESS, HOUSE_SIZE } from './types';
 import { Camera } from './camera';
 
 /**
  * 游戏渲染器
  */
 export class GameRenderer {
-  private canvas: HTMLCanvasElement;
-  private ctx: CanvasRenderingContext2D;
-  private camera: Camera;
+  private readonly canvas: HTMLCanvasElement;
+  private readonly ctx: CanvasRenderingContext2D;
+  private readonly camera: Camera;
+  private debugMode: boolean = false; // 调试模式开关
 
-  constructor(canvas: HTMLCanvasElement) {
+  constructor(canvas: HTMLCanvasElement, debugMode: boolean = false) {
     this.canvas = canvas;
     const ctx = canvas.getContext('2d');
     if (!ctx) {
@@ -18,20 +19,23 @@ export class GameRenderer {
     }
     this.ctx = ctx;
     this.camera = new Camera();
+    this.debugMode = debugMode;
   }
 
   /**
    * 渲染游戏状态
    */
   render(state: GameState): void {
-    // 清空画布
+    // 清空画布（这会显示 CSS 中设置的灰色背景）
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
     // 应用摄影机变换
     this.camera.apply(this.ctx);
 
-    // 渲染背景（白色）
-    this.renderBackground();
+    // 【调试】绘制4个层次的区域（仅在调试模式下）
+    if (this.debugMode) {
+      this.renderDebugLayers();
+    }
 
     // 渲染瓷砖
     this.renderTiles(state.tiles);
@@ -50,11 +54,37 @@ export class GameRenderer {
   }
 
   /**
-   * 渲染背景
+   * 【调试】绘制4个层次区域的边界和填充
    */
-  private renderBackground(): void {
-    this.ctx.fillStyle = '#FFFFFF';
-    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+  private renderDebugLayers(): void {
+    // 1. 画布边界 - 黄色半透明（整个 Canvas 可视区域）
+    const canvasRect = this.camera.screenToWorld(0, 0);
+    const canvasWidth = this.canvas.width / this.camera.zoom;
+    const canvasHeight = this.canvas.height / this.camera.zoom;
+    
+    this.ctx.fillStyle = 'rgba(255, 255, 0, 0.1)'; // 黄色，10% 透明度
+    this.ctx.fillRect(canvasRect.x, canvasRect.y, canvasWidth, canvasHeight);
+    
+    this.ctx.strokeStyle = '#FFD700'; // 金黄色边框
+    this.ctx.lineWidth = 3 / this.camera.zoom;
+    this.ctx.strokeRect(canvasRect.x, canvasRect.y, canvasWidth, canvasHeight);
+
+    // 2. 地图有效区域 - 蓝色半透明（房屋 + 墙体的总范围）
+    const mapSize = HOUSE_SIZE + WALL_THICKNESS * 2; // 688px
+    this.ctx.fillStyle = 'rgba(0, 0, 255, 0.15)'; // 蓝色，15% 透明度
+    this.ctx.fillRect(0, 0, mapSize, mapSize);
+    
+    this.ctx.strokeStyle = '#0066FF'; // 蓝色边框
+    this.ctx.lineWidth = 3 / this.camera.zoom;
+    this.ctx.strokeRect(0, 0, mapSize, mapSize);
+
+    // 3. 房屋有效区域 - 绿色半透明（房屋内部，不包括墙体）
+    this.ctx.fillStyle = 'rgba(0, 255, 0, 0.15)'; // 绿色，15% 透明度
+    this.ctx.fillRect(WALL_THICKNESS, WALL_THICKNESS, HOUSE_SIZE, HOUSE_SIZE);
+    
+    this.ctx.strokeStyle = '#00CC00'; // 绿色边框
+    this.ctx.lineWidth = 3 / this.camera.zoom;
+    this.ctx.strokeRect(WALL_THICKNESS, WALL_THICKNESS, HOUSE_SIZE, HOUSE_SIZE);
   }
 
   /**
@@ -106,6 +136,13 @@ export class GameRenderer {
       this.ctx.lineWidth = 2;
       this.ctx.strokeRect(cat.x, cat.y, cat.width, cat.height);
     });
+  }
+
+  /**
+   * 设置调试模式
+   */
+  setDebugMode(enabled: boolean): void {
+    this.debugMode = enabled;
   }
 
   /**

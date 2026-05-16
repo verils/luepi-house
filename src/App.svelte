@@ -17,11 +17,16 @@
   let resizeObserver: ResizeObserver | null = null;
 
   onMount(() => {
+    // 检查 URL 参数是否启用调试模式
+    const urlParams = new URLSearchParams(window.location.search);
+    const debugParam = urlParams.get('debug');
+    const debugMode = debugParam === 'true' || debugParam === 'yes' || debugParam === '1';
+
     // 初始化游戏状态
     gameState = initGameState();
 
-    // 初始化渲染器
-    renderer = new GameRenderer(canvas);
+    // 初始化渲染器（传入调试模式）
+    renderer = new GameRenderer(canvas, debugMode);
     camera = renderer.getCamera();
 
     // 设置 Canvas 尺寸为视口大小
