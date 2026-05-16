@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { initGameState, GameRenderer } from '$lib/game';
-  import { HOUSE_SIZE, WALL_THICKNESS } from '$lib/game';
+  import { initGameState, GameRenderer } from './lib/game';
+  import { HOUSE_SIZE, WALL_THICKNESS } from './lib/game';
 
   let canvas: HTMLCanvasElement;
   let gameState = $state<any>(null);
