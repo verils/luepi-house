@@ -1,5 +1,6 @@
 import type { GameState, Tile, Wall, House, Cat } from './types';
 import { TILE_SIZE, WALL_THICKNESS } from './types';
+import { Camera } from './camera';
 
 /**
  * 游戏渲染器
@@ -7,6 +8,7 @@ import { TILE_SIZE, WALL_THICKNESS } from './types';
 export class GameRenderer {
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
+  private camera: Camera;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -15,6 +17,7 @@ export class GameRenderer {
       throw new Error('无法获取 Canvas 上下文');
     }
     this.ctx = ctx;
+    this.camera = new Camera();
   }
 
   /**
@@ -23,6 +26,9 @@ export class GameRenderer {
   render(state: GameState): void {
     // 清空画布
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+    // 应用摄影机变换
+    this.camera.apply(this.ctx);
 
     // 渲染背景（白色）
     this.renderBackground();
@@ -38,6 +44,9 @@ export class GameRenderer {
 
     // 渲染猫咪
     this.renderCats(state.cats);
+
+    // 恢复摄影机变换
+    this.camera.restore(this.ctx);
   }
 
   /**
@@ -97,5 +106,12 @@ export class GameRenderer {
       this.ctx.lineWidth = 2;
       this.ctx.strokeRect(cat.x, cat.y, cat.width, cat.height);
     });
+  }
+
+  /**
+   * 获取摄影机实例
+   */
+  getCamera(): Camera {
+    return this.camera;
   }
 }
