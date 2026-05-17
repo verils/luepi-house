@@ -62,6 +62,8 @@ export function initGameState(): GameState {
       width: CAT_VISUAL_SIZE,
       height: CAT_VISUAL_SIZE,
       color: '#E8945A',
+      rotation: 0,
+      speed: 1.5,
     },
     {
       id: 'pipi',
@@ -70,7 +72,9 @@ export function initGameState(): GameState {
       y: house.y + HOUSE_SIZE / 2,
       width: CAT_VISUAL_SIZE,
       height: CAT_VISUAL_SIZE,
-      color: '#8B6F47',
+      color: '#F5E6D3',
+      rotation: 0,
+      speed: 1.2,
     },
   ];
 

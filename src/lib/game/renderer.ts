@@ -127,14 +127,50 @@ export class GameRenderer {
    */
   private renderCats(cats: Cat[]): void {
     cats.forEach((cat) => {
-      // 绘制猫咪方形色块
+      this.ctx.save();
+      
+      // 移动到猫的中心位置并旋转
+      const centerX = cat.x + cat.width / 2;
+      const centerY = cat.y + cat.height / 2;
+      this.ctx.translate(centerX, centerY);
+      this.ctx.rotate(cat.rotation);
+      
+      // 绘制身体（椭圆）
       this.ctx.fillStyle = cat.color;
-      this.ctx.fillRect(cat.x, cat.y, cat.width, cat.height);
-
-      // 绘制猫咪边框
+      this.ctx.beginPath();
+      this.ctx.ellipse(0, 4, cat.width / 2, cat.height / 3, 0, 0, Math.PI * 2);
+      this.ctx.fill();
       this.ctx.strokeStyle = '#000000';
       this.ctx.lineWidth = 2;
-      this.ctx.strokeRect(cat.x, cat.y, cat.width, cat.height);
+      this.ctx.stroke();
+      
+      // 绘制头部（圆形）
+      this.ctx.beginPath();
+      this.ctx.arc(0, -6, cat.width / 2.5, 0, Math.PI * 2);
+      this.ctx.fill();
+      this.ctx.stroke();
+      
+      // 绘制耳朵（三角形）
+      const earSize = cat.width / 4;
+      // 左耳
+      this.ctx.beginPath();
+      this.ctx.moveTo(-earSize, -10);
+      this.ctx.lineTo(-earSize - 4, -18);
+      this.ctx.lineTo(-earSize + 4, -18);
+      this.ctx.closePath();
+      this.ctx.fill();
+      this.ctx.stroke();
+      
+      // 右耳
+      this.ctx.beginPath();
+      this.ctx.moveTo(earSize, -10);
+      this.ctx.lineTo(earSize - 4, -18);
+      this.ctx.lineTo(earSize + 4, -18);
+      this.ctx.closePath();
+      this.ctx.fill();
+      this.ctx.stroke();
+      
+      this.ctx.restore();
     });
   }
 

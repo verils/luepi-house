@@ -2,8 +2,8 @@
 export const TILE_SIZE = 32; // 瓷砖大小 32x32px
 export const WALL_THICKNESS = 24; // 墙体厚度 24px
 export const HOUSE_SIZE = 640; // 房屋大小 640x640px
-export const CAT_VISUAL_SIZE = 24; // 猫咪视觉尺寸 24x24px
-export const CAT_COLLISION_RADIUS = 12; // 猫咪碰撞半径 12px
+export const CAT_VISUAL_SIZE = 32; // 猫咪视觉尺寸 32x32px（标准Sprite尺寸）
+export const CAT_COLLISION_RADIUS = 16; // 猫咪碰撞半径 16px
 
 // 瓷砖类型
 export enum TileType {
@@ -44,6 +44,8 @@ export interface Cat {
   width: number;
   height: number;
   color: string;
+  rotation: number; // 旋转角度（弧度）
+  speed: number; // 移动速度（像素/帧）
 }
 
 // 游戏状态接口
