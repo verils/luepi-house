@@ -12,6 +12,10 @@
   let isDragging = false;
   let lastMouseX = 0;
   let lastMouseY = 0;
+  
+  // 选中的猫咪
+  let selectedCat = $state<any>(null);
+  let showCatInfo = $state(false);
 
   // resize 监听器引用
   let resizeObserver: ResizeObserver | null = null;
@@ -101,12 +105,25 @@
   function setupEventListeners() {
     if (!canvas) return;
 
-    // 鼠标按下事件 - 开始拖动
+    // 鼠标按下事件 - 开始拖动或选择猫咪
     canvas.addEventListener('mousedown', (e) => {
-      isDragging = true;
-      lastMouseX = e.clientX;
-      lastMouseY = e.clientY;
-      canvas.style.cursor = 'grabbing';
+      // 检查是否点击了猫咪
+      const clickedCat = checkCatClick(e.offsetX, e.offsetY);
+      if (clickedCat) {
+        selectedCat = clickedCat;
+        showCatInfo = true;
+        // 不开始拖动，而是显示信息
+        return;
+      } else {
+        // 没有点击到猫咪，开始拖动
+        isDragging = true;
+        lastMouseX = e.clientX;
+        lastMouseY = e.clientY;
+        canvas.style.cursor = 'grabbing';
+        // 隐藏猫咪信息
+        showCatInfo = false;
+        selectedCat = null;
+      }
     });
 
     // 鼠标移动事件 - 拖动摄影机
@@ -189,12 +206,41 @@
       case '_':
         camera.zoomAt(0.9); // 缩小
         break;
+      case 'Escape':
+        // 按ESC键隐藏猫咪信息
+        showCatInfo = false;
+        selectedCat = null;
+        break;
       default:
         return; // 不处理其他按键
     }
 
     e.preventDefault();
     renderer.render(gameState);
+  }
+  
+  /**
+   * 检查是否点击了猫咪
+   */
+  function checkCatClick(mouseX: number, mouseY: number): any {
+    if (!gameState || !camera) return null;
+    
+    // 将屏幕坐标转换为世界坐标
+    const worldPos = camera.screenToWorld(mouseX, mouseY);
+    
+    // 检查每只猫
+    for (const cat of gameState.cats) {
+      const dx = worldPos.x - (cat.x + cat.visualWidth / 2);
+      const dy = worldPos.y - (cat.y + cat.visualHeight / 2);
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      
+      // 使用交互半径进行检测
+      if (distance <= cat.interactionRadius) {
+        return cat;
+      }
+    }
+    
+    return null;
   }
 
   // 控制函数
@@ -236,6 +282,24 @@
   <div class="ui-overlay">
     <h1 class="title">Cat House</h1>
 
+    <!-- 猫咪信息面板 -->
+    {#if showCatInfo && selectedCat}
+      <div class="cat-info-panel">
+        <div class="cat-info-header">
+          <span class="cat-name">{selectedCat.name}</span>
+          <button class="close-btn" onclick={() => { showCatInfo = false; selectedCat = null; }}>×</button>
+        </div>
+        <div class="cat-info-content">
+          <p><strong>ID:</strong> {selectedCat.id}</p>
+          <p><strong>颜色:</strong> <span style="color: {selectedCat.color};">●</span> {selectedCat.color}</p>
+          <p><strong>速度:</strong> {selectedCat.speed} px/帧</p>
+          <p><strong>位置:</strong> ({Math.round(selectedCat.x)}, {Math.round(selectedCat.y)})</p>
+          <p><strong>碰撞半径:</strong> {selectedCat.collisionRadius}px</p>
+          <p><strong>交互半径:</strong> {selectedCat.interactionRadius}px</p>
+        </div>
+      </div>
+    {/if}
+
     <div class="controls">
       <button class="control-btn" onclick={() => resetCamera()}>重置视图</button>
       <button class="control-btn" onclick={() => zoomIn()}>放大</button>
@@ -243,7 +307,7 @@
     </div>
 
     <div class="instructions">
-      <p>🖱️ 鼠标拖动：平移视图 | 🖱️ 滚轮：缩放视图 | ⌨️ 方向键：移动视图 | ⌨️ +/-：缩放视图</p>
+      <p>🖱️ 鼠标拖动：平移视图 | 🖱️ 滚轮：缩放视图 | ⌨️ 方向键：移动视图 | ⌨️ +/-：缩放视图 | 🖱️ 点击猫咪：查看信息</p>
     </div>
   </div>
 </div>
@@ -345,6 +409,66 @@
 
   .instructions p {
     margin: 0;
+  }
+  
+  /* 猫咪信息面板 */
+  .cat-info-panel {
+    position: absolute;
+    top: 80px;
+    right: 20px;
+    background-color: rgba(255, 255, 255, 0.95);
+    border: 2px solid #424242;
+    border-radius: 12px;
+    padding: 16px;
+    min-width: 250px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    pointer-events: auto;
+    backdrop-filter: blur(10px);
+  }
+  
+  .cat-info-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e0e0e0;
+  }
+  
+  .cat-name {
+    font-size: 18px;
+    font-weight: bold;
+    color: #333;
+  }
+  
+  .close-btn {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: #666;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+  }
+  
+  .close-btn:hover {
+    background-color: #f0f0f0;
+    color: #333;
+  }
+  
+  .cat-info-content {
+    font-size: 14px;
+    color: #555;
+  }
+  
+  .cat-info-content p {
+    margin: 6px 0;
+    line-height: 1.4;
   }
 
   /* 响应式设计 */

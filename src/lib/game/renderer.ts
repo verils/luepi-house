@@ -135,43 +135,391 @@ export class GameRenderer {
       this.ctx.translate(centerX, centerY);
       this.ctx.rotate(cat.rotation);
       
-      // 绘制身体（椭圆）- 使用视觉尺寸
-      this.ctx.fillStyle = cat.color;
-      this.ctx.beginPath();
-      this.ctx.ellipse(0, 4, cat.visualWidth / 2, cat.visualHeight / 3, 0, 0, Math.PI * 2);
-      this.ctx.fill();
-      this.ctx.strokeStyle = '#000000';
-      this.ctx.lineWidth = 2;
-      this.ctx.stroke();
-      
-      // 绘制头部（圆形）- 使用视觉尺寸
-      this.ctx.beginPath();
-      this.ctx.arc(0, -6, cat.visualWidth / 2.5, 0, Math.PI * 2);
-      this.ctx.fill();
-      this.ctx.stroke();
-      
-      // 绘制耳朵（三角形）- 使用视觉尺寸
-      const earSize = cat.visualWidth / 4;
-      // 左耳
-      this.ctx.beginPath();
-      this.ctx.moveTo(-earSize, -10);
-      this.ctx.lineTo(-earSize - 4, -18);
-      this.ctx.lineTo(-earSize + 4, -18);
-      this.ctx.closePath();
-      this.ctx.fill();
-      this.ctx.stroke();
-      
-      // 右耳
-      this.ctx.beginPath();
-      this.ctx.moveTo(earSize, -10);
-      this.ctx.lineTo(earSize - 4, -18);
-      this.ctx.lineTo(earSize + 4, -18);
-      this.ctx.closePath();
-      this.ctx.fill();
-      this.ctx.stroke();
+      // 根据猫的ID选择不同的绘制方法
+      if (cat.id === 'luelue') {
+        this.renderCatLuelue(cat);
+      } else if (cat.id === 'pipi') {
+        this.renderCatPipi(cat);
+      } else {
+        // 默认绘制方法
+        this.renderCatDefault(cat);
+      }
       
       this.ctx.restore();
     });
+  }
+
+  /**
+   * 渲染默认猫咪（简单版本）
+   */
+  private renderCatDefault(cat: Cat): void {
+    // 绘制身体（椭圆）- 使用视觉尺寸
+    this.ctx.fillStyle = cat.color;
+    this.ctx.beginPath();
+    this.ctx.ellipse(0, 4, cat.visualWidth / 2, cat.visualHeight / 3, 0, 0, Math.PI * 2);
+    this.ctx.fill();
+    this.ctx.strokeStyle = '#000000';
+    this.ctx.lineWidth = 2;
+    this.ctx.stroke();
+    
+    // 绘制头部（圆形）- 使用视觉尺寸
+    this.ctx.beginPath();
+    this.ctx.arc(0, -6, cat.visualWidth / 2.5, 0, Math.PI * 2);
+    this.ctx.fill();
+    this.ctx.stroke();
+    
+    // 绘制耳朵（三角形）- 使用视觉尺寸
+    const earSize = cat.visualWidth / 4;
+    // 左耳
+    this.ctx.beginPath();
+    this.ctx.moveTo(-earSize, -10);
+    this.ctx.lineTo(-earSize - 4, -18);
+    this.ctx.lineTo(-earSize + 4, -18);
+    this.ctx.closePath();
+    this.ctx.fill();
+    this.ctx.stroke();
+    
+    // 右耳
+    this.ctx.beginPath();
+    this.ctx.moveTo(earSize, -10);
+    this.ctx.lineTo(earSize - 4, -18);
+    this.ctx.lineTo(earSize + 4, -18);
+    this.ctx.closePath();
+    this.ctx.fill();
+    this.ctx.stroke();
+  }
+
+  /**
+   * 渲染略略（橘白猫）
+   */
+  private renderCatLuelue(cat: Cat): void {
+    const scale = cat.visualWidth / 32; // 基于32x32标准尺寸的缩放比例
+    
+    // 绘制阴影
+    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+    this.ctx.beginPath();
+    this.ctx.ellipse(0, 12 * scale, 14 * scale, 6 * scale, 0, 0, Math.PI * 2);
+    this.ctx.fill();
+    
+    // 绘制身体（椭圆）- 暖橘色主体
+    this.ctx.fillStyle = '#E8945A'; // 暖橘色
+    this.ctx.beginPath();
+    this.ctx.ellipse(0, 4 * scale, 12 * scale, 8 * scale, 0, 0, Math.PI * 2);
+    this.ctx.fill();
+    this.ctx.strokeStyle = '#000000';
+    this.ctx.lineWidth = 2 * scale;
+    this.ctx.stroke();
+    
+    // 绘制腹部奶油白色区域
+    this.ctx.fillStyle = '#FFF5E6'; // 奶油白
+    this.ctx.beginPath();
+    this.ctx.ellipse(0, 6 * scale, 8 * scale, 5 * scale, 0, 0, Math.PI * 2);
+    this.ctx.fill();
+    
+    // 绘制头部（圆形）- 暖橘色
+    this.ctx.fillStyle = '#E8945A'; // 暖橘色
+    this.ctx.beginPath();
+    this.ctx.arc(0, -6 * scale, 10 * scale, 0, Math.PI * 2);
+    this.ctx.fill();
+    this.ctx.stroke();
+    
+    // 绘制脸部奶油白色区域
+    this.ctx.fillStyle = '#FFF5E6'; // 奶油白
+    this.ctx.beginPath();
+    this.ctx.arc(0, -4 * scale, 7 * scale, 0, Math.PI * 2);
+    this.ctx.fill();
+    
+    // 绘制耳朵（三角形）- 暖橘色外部
+    this.ctx.fillStyle = '#E8945A'; // 暖橘色
+    // 左耳
+    this.ctx.beginPath();
+    this.ctx.moveTo(-8 * scale, -10 * scale);
+    this.ctx.lineTo(-12 * scale, -18 * scale);
+    this.ctx.lineTo(-4 * scale, -18 * scale);
+    this.ctx.closePath();
+    this.ctx.fill();
+    this.ctx.stroke();
+    
+    // 右耳
+    this.ctx.beginPath();
+    this.ctx.moveTo(8 * scale, -10 * scale);
+    this.ctx.lineTo(4 * scale, -18 * scale);
+    this.ctx.lineTo(12 * scale, -18 * scale);
+    this.ctx.closePath();
+    this.ctx.fill();
+    this.ctx.stroke();
+    
+    // 绘制耳朵内侧（粉橘色）
+    this.ctx.fillStyle = '#FFB6A0'; // 粉橘色
+    // 左耳内侧
+    this.ctx.beginPath();
+    this.ctx.moveTo(-8 * scale, -11 * scale);
+    this.ctx.lineTo(-10 * scale, -16 * scale);
+    this.ctx.lineTo(-6 * scale, -16 * scale);
+    this.ctx.closePath();
+    this.ctx.fill();
+    
+    // 右耳内侧
+    this.ctx.beginPath();
+    this.ctx.moveTo(8 * scale, -11 * scale);
+    this.ctx.lineTo(6 * scale, -16 * scale);
+    this.ctx.lineTo(10 * scale, -16 * scale);
+    this.ctx.closePath();
+    this.ctx.fill();
+    
+    // 绘制眼睛（绿色或蓝色）
+    this.ctx.fillStyle = '#6BCB77'; // 翠绿色
+    // 左眼
+    this.ctx.beginPath();
+    this.ctx.arc(-4 * scale, -7 * scale, 2 * scale, 0, Math.PI * 2);
+    this.ctx.fill();
+    
+    // 右眼
+    this.ctx.beginPath();
+    this.ctx.arc(4 * scale, -7 * scale, 2 * scale, 0, Math.PI * 2);
+    this.ctx.fill();
+    
+    // 绘制鼻子（粉橘色）
+    this.ctx.fillStyle = '#FFB6A0'; // 粉橘色
+    this.ctx.beginPath();
+    this.ctx.arc(0, -4 * scale, 1.5 * scale, 0, Math.PI * 2);
+    this.ctx.fill();
+    
+    // 绘制胡须（白色线条）
+    this.ctx.strokeStyle = '#FFFFFF'; // 纯白色
+    this.ctx.lineWidth = 1 * scale;
+    
+    // 左侧胡须
+    this.ctx.beginPath();
+    this.ctx.moveTo(-6 * scale, -4 * scale);
+    this.ctx.lineTo(-14 * scale, -5 * scale);
+    this.ctx.stroke();
+    
+    this.ctx.beginPath();
+    this.ctx.moveTo(-6 * scale, -3 * scale);
+    this.ctx.lineTo(-14 * scale, -2 * scale);
+    this.ctx.stroke();
+    
+    // 右侧胡须
+    this.ctx.beginPath();
+    this.ctx.moveTo(6 * scale, -4 * scale);
+    this.ctx.lineTo(14 * scale, -5 * scale);
+    this.ctx.stroke();
+    
+    this.ctx.beginPath();
+    this.ctx.moveTo(6 * scale, -3 * scale);
+    this.ctx.lineTo(14 * scale, -2 * scale);
+    this.ctx.stroke();
+    
+    // 绘制尾巴（曲线）
+    this.ctx.strokeStyle = '#E8945A'; // 暖橘色
+    this.ctx.lineWidth = 3 * scale;
+    this.ctx.lineCap = 'round';
+    this.ctx.beginPath();
+    this.ctx.moveTo(8 * scale, 8 * scale);
+    this.ctx.quadraticCurveTo(14 * scale, 12 * scale, 16 * scale, 6 * scale);
+    this.ctx.stroke();
+    
+    // 绘制爪子（奶油白色）
+    this.ctx.fillStyle = '#FFF5E6'; // 奶油白
+    // 前爪
+    this.ctx.beginPath();
+    this.ctx.arc(-6 * scale, 10 * scale, 2 * scale, 0, Math.PI * 2);
+    this.ctx.fill();
+    this.ctx.stroke();
+    
+    this.ctx.beginPath();
+    this.ctx.arc(6 * scale, 10 * scale, 2 * scale, 0, Math.PI * 2);
+    this.ctx.fill();
+    this.ctx.stroke();
+    
+    // 后爪
+    this.ctx.beginPath();
+    this.ctx.arc(-8 * scale, 12 * scale, 2 * scale, 0, Math.PI * 2);
+    this.ctx.fill();
+    this.ctx.stroke();
+    
+    this.ctx.beginPath();
+    this.ctx.arc(8 * scale, 12 * scale, 2 * scale, 0, Math.PI * 2);
+    this.ctx.fill();
+    this.ctx.stroke();
+  }
+
+  /**
+   * 渲染皮皮（暹罗猫）
+   */
+  private renderCatPipi(cat: Cat): void {
+    const scale = cat.visualWidth / 32; // 基于32x32标准尺寸的缩放比例
+    
+    // 绘制阴影
+    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+    this.ctx.beginPath();
+    this.ctx.ellipse(0, 12 * scale, 12 * scale, 5 * scale, 0, 0, Math.PI * 2);
+    this.ctx.fill();
+    
+    // 绘制身体（椭圆）- 暖米色主体
+    this.ctx.fillStyle = '#F5E6D3'; // 暖米色
+    this.ctx.beginPath();
+    this.ctx.ellipse(0, 4 * scale, 10 * scale, 7 * scale, 0, 0, Math.PI * 2);
+    this.ctx.fill();
+    this.ctx.strokeStyle = '#000000';
+    this.ctx.lineWidth = 2 * scale;
+    this.ctx.stroke();
+    
+    // 绘制重点色区域（深巧克力色）- 脸部面具
+    this.ctx.fillStyle = '#5C3A21'; // 深巧克力色
+    this.ctx.beginPath();
+    this.ctx.arc(0, -6 * scale, 9 * scale, 0, Math.PI * 2);
+    this.ctx.fill();
+    
+    // 绘制头部（圆形）- 暖米色外层
+    this.ctx.fillStyle = '#F5E6D3'; // 暖米色
+    this.ctx.beginPath();
+    this.ctx.arc(0, -6 * scale, 10 * scale, 0, Math.PI * 2);
+    this.ctx.fill();
+    this.ctx.stroke();
+    
+    // 重新绘制脸部重点色（确保在最上层）
+    this.ctx.fillStyle = '#5C3A21'; // 深巧克力色
+    this.ctx.beginPath();
+    this.ctx.arc(0, -6 * scale, 8 * scale, 0, Math.PI * 2);
+    this.ctx.fill();
+    
+    // 绘制耳朵（三角形）- 深巧克力色外部
+    this.ctx.fillStyle = '#5C3A21'; // 深巧克力色
+    // 左耳
+    this.ctx.beginPath();
+    this.ctx.moveTo(-8 * scale, -10 * scale);
+    this.ctx.lineTo(-12 * scale, -18 * scale);
+    this.ctx.lineTo(-4 * scale, -18 * scale);
+    this.ctx.closePath();
+    this.ctx.fill();
+    this.ctx.stroke();
+    
+    // 右耳
+    this.ctx.beginPath();
+    this.ctx.moveTo(8 * scale, -10 * scale);
+    this.ctx.lineTo(4 * scale, -18 * scale);
+    this.ctx.lineTo(12 * scale, -18 * scale);
+    this.ctx.closePath();
+    this.ctx.fill();
+    this.ctx.stroke();
+    
+    // 绘制耳朵内侧（淡粉色）
+    this.ctx.fillStyle = '#FFD9E0'; // 淡粉色
+    // 左耳内侧
+    this.ctx.beginPath();
+    this.ctx.moveTo(-8 * scale, -11 * scale);
+    this.ctx.lineTo(-10 * scale, -16 * scale);
+    this.ctx.lineTo(-6 * scale, -16 * scale);
+    this.ctx.closePath();
+    this.ctx.fill();
+    
+    // 右耳内侧
+    this.ctx.beginPath();
+    this.ctx.moveTo(8 * scale, -11 * scale);
+    this.ctx.lineTo(6 * scale, -16 * scale);
+    this.ctx.lineTo(10 * scale, -16 * scale);
+    this.ctx.closePath();
+    this.ctx.fill();
+    
+    // 绘制眼睛（宝石蓝色 - 暹罗猫标志性蓝眼）
+    this.ctx.fillStyle = '#4D96FF'; // 宝石蓝色
+    // 左眼
+    this.ctx.beginPath();
+    this.ctx.arc(-4 * scale, -7 * scale, 2 * scale, 0, Math.PI * 2);
+    this.ctx.fill();
+    
+    // 右眼
+    this.ctx.beginPath();
+    this.ctx.arc(4 * scale, -7 * scale, 2 * scale, 0, Math.PI * 2);
+    this.ctx.fill();
+    
+    // 绘制鼻子（深巧克力色）
+    this.ctx.fillStyle = '#5C3A21'; // 深巧克力色
+    this.ctx.beginPath();
+    this.ctx.arc(0, -4 * scale, 1.5 * scale, 0, Math.PI * 2);
+    this.ctx.fill();
+    
+    // 绘制胡须（白色线条）
+    this.ctx.strokeStyle = '#FFFFFF'; // 纯白色
+    this.ctx.lineWidth = 1 * scale;
+    
+    // 左侧胡须
+    this.ctx.beginPath();
+    this.ctx.moveTo(-6 * scale, -4 * scale);
+    this.ctx.lineTo(-14 * scale, -5 * scale);
+    this.ctx.stroke();
+    
+    this.ctx.beginPath();
+    this.ctx.moveTo(-6 * scale, -3 * scale);
+    this.ctx.lineTo(-14 * scale, -2 * scale);
+    this.ctx.stroke();
+    
+    // 右侧胡须
+    this.ctx.beginPath();
+    this.ctx.moveTo(6 * scale, -4 * scale);
+    this.ctx.lineTo(14 * scale, -5 * scale);
+    this.ctx.stroke();
+    
+    this.ctx.beginPath();
+    this.ctx.moveTo(6 * scale, -3 * scale);
+    this.ctx.lineTo(14 * scale, -2 * scale);
+    this.ctx.stroke();
+    
+    // 绘制尾巴（深巧克力色，曲线）
+    this.ctx.strokeStyle = '#5C3A21'; // 深巧克力色
+    this.ctx.lineWidth = 3 * scale;
+    this.ctx.lineCap = 'round';
+    this.ctx.beginPath();
+    this.ctx.moveTo(8 * scale, 8 * scale);
+    this.ctx.quadraticCurveTo(14 * scale, 12 * scale, 16 * scale, 6 * scale);
+    this.ctx.stroke();
+    
+    // 绘制爪子（深巧克力色 - "黑手套"）
+    this.ctx.fillStyle = '#5C3A21'; // 深巧克力色
+    // 前爪
+    this.ctx.beginPath();
+    this.ctx.arc(-6 * scale, 10 * scale, 2 * scale, 0, Math.PI * 2);
+    this.ctx.fill();
+    this.ctx.stroke();
+    
+    this.ctx.beginPath();
+    this.ctx.arc(6 * scale, 10 * scale, 2 * scale, 0, Math.PI * 2);
+    this.ctx.fill();
+    this.ctx.stroke();
+    
+    // 后爪
+    this.ctx.beginPath();
+    this.ctx.arc(-8 * scale, 12 * scale, 2 * scale, 0, Math.PI * 2);
+    this.ctx.fill();
+    this.ctx.stroke();
+    
+    this.ctx.beginPath();
+    this.ctx.arc(8 * scale, 12 * scale, 2 * scale, 0, Math.PI * 2);
+    this.ctx.fill();
+    this.ctx.stroke();
+    
+    // 绘制深蓝色丝质蝴蝶结
+    this.ctx.fillStyle = '#1E3A8A'; // 深蓝色
+    // 蝴蝶结左翼
+    this.ctx.beginPath();
+    this.ctx.ellipse(-4 * scale, -12 * scale, 3 * scale, 2 * scale, Math.PI / 4, 0, Math.PI * 2);
+    this.ctx.fill();
+    this.ctx.stroke();
+    
+    // 蝴蝶结右翼
+    this.ctx.beginPath();
+    this.ctx.ellipse(4 * scale, -12 * scale, 3 * scale, 2 * scale, -Math.PI / 4, 0, Math.PI * 2);
+    this.ctx.fill();
+    this.ctx.stroke();
+    
+    // 蝴蝶结中心
+    this.ctx.fillStyle = '#1E3A8A'; // 深蓝色
+    this.ctx.beginPath();
+    this.ctx.arc(0, -12 * scale, 1.5 * scale, 0, Math.PI * 2);
+    this.ctx.fill();
+    this.ctx.stroke();
   }
 
   /**
