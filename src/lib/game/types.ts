@@ -35,14 +35,19 @@ export interface House {
   height: number;
 }
 
-// 猫咪接口
+// 猫咪接口（三尺寸分离）
 export interface Cat {
   id: string;
   name: string;
   x: number;
   y: number;
-  width: number;
-  height: number;
+  // 视觉尺寸 - 用于渲染显示
+  visualWidth: number;
+  visualHeight: number;
+  // 物理尺寸 - 用于碰撞检测
+  collisionRadius: number;
+  // 交互尺寸 - 用于点击检测
+  interactionRadius: number;
   color: string;
   rotation: number; // 旋转角度（弧度）
   speed: number; // 移动速度（像素/帧）

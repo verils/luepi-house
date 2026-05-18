@@ -130,28 +130,28 @@ export class GameRenderer {
       this.ctx.save();
       
       // 移动到猫的中心位置并旋转
-      const centerX = cat.x + cat.width / 2;
-      const centerY = cat.y + cat.height / 2;
+      const centerX = cat.x + cat.visualWidth / 2;
+      const centerY = cat.y + cat.visualHeight / 2;
       this.ctx.translate(centerX, centerY);
       this.ctx.rotate(cat.rotation);
       
-      // 绘制身体（椭圆）
+      // 绘制身体（椭圆）- 使用视觉尺寸
       this.ctx.fillStyle = cat.color;
       this.ctx.beginPath();
-      this.ctx.ellipse(0, 4, cat.width / 2, cat.height / 3, 0, 0, Math.PI * 2);
+      this.ctx.ellipse(0, 4, cat.visualWidth / 2, cat.visualHeight / 3, 0, 0, Math.PI * 2);
       this.ctx.fill();
       this.ctx.strokeStyle = '#000000';
       this.ctx.lineWidth = 2;
       this.ctx.stroke();
       
-      // 绘制头部（圆形）
+      // 绘制头部（圆形）- 使用视觉尺寸
       this.ctx.beginPath();
-      this.ctx.arc(0, -6, cat.width / 2.5, 0, Math.PI * 2);
+      this.ctx.arc(0, -6, cat.visualWidth / 2.5, 0, Math.PI * 2);
       this.ctx.fill();
       this.ctx.stroke();
       
-      // 绘制耳朵（三角形）
-      const earSize = cat.width / 4;
+      // 绘制耳朵（三角形）- 使用视觉尺寸
+      const earSize = cat.visualWidth / 4;
       // 左耳
       this.ctx.beginPath();
       this.ctx.moveTo(-earSize, -10);
