@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { initGameState } from '../init';
+import { initGameState } from './init';
 
 describe('Cat Rendering', () => {
   it('should initialize two cats with correct properties', () => {
