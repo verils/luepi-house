@@ -39,6 +39,6 @@ describe('Cat Rendering', () => {
     expect(luelue?.collisionRadius).toBeGreaterThan(pipi?.collisionRadius!);
     
     // Verify they have different speeds (Luelue is faster)
-    expect(luelue?.speed).toBeGreaterThan(pipi?.speed);
+    expect(luelue?.speed).toBeGreaterThan(pipi?.speed!);
   });
 });

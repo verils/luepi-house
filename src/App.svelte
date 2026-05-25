@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { initGameState, GameRenderer } from './lib/game';
+  import { initGameState, GameRenderer, updateCatAI, updateCatMovement } from './lib/game';
   import { HOUSE_SIZE, WALL_THICKNESS } from './lib/game';
 
   let canvas: HTMLCanvasElement;
@@ -19,6 +19,9 @@
 
   // resize 监听器引用
   let resizeObserver: ResizeObserver | null = null;
+
+  // 游戏循环
+  let animationFrameId = 0;
 
   onMount(() => {
     // 检查 URL 参数是否启用调试模式
@@ -45,11 +48,15 @@
     // 添加事件监听器
     setupEventListeners();
 
+    // 启动游戏循环
+    animationFrameId = requestAnimationFrame(gameLoop);
+
     // 监听窗口大小变化
     window.addEventListener('resize', handleResize);
   });
 
   onDestroy(() => {
+    cancelAnimationFrame(animationFrameId);
     // 清理事件监听器（仅在客户端执行）
     if (typeof window !== 'undefined') {
       window.removeEventListener('resize', handleResize);
@@ -217,6 +224,22 @@
 
     e.preventDefault();
     renderer.render(gameState);
+  }
+
+  function gameLoop() {
+    if (!gameState || !renderer) {
+      animationFrameId = requestAnimationFrame(gameLoop);
+      return;
+    }
+
+    for (const cat of gameState.cats) {
+      updateCatAI(cat);
+      updateCatMovement(cat);
+    }
+
+    renderer.render(gameState);
+
+    animationFrameId = requestAnimationFrame(gameLoop);
   }
   
   /**

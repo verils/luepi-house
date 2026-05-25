@@ -66,6 +66,10 @@ export function initGameState(): GameState {
       color: '#E8945A',
       rotation: 0,
       speed: 1.5,
+      targetX: house.x + HOUSE_SIZE / 3,
+      targetY: house.y + HOUSE_SIZE / 2,
+      state: 'idle',
+      idleTimer: 30,
     },
     {
       id: 'pipi',
@@ -79,6 +83,10 @@ export function initGameState(): GameState {
       color: '#F5E6D3',
       rotation: 0,
       speed: 1.2,
+      targetX: house.x + (HOUSE_SIZE * 2) / 3,
+      targetY: house.y + HOUSE_SIZE / 2,
+      state: 'idle',
+      idleTimer: 60,
     },
   ];
 

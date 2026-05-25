@@ -35,6 +35,9 @@ export interface House {
   height: number;
 }
 
+// 猫咪状态
+export type CatState = 'idle' | 'moving';
+
 // 猫咪接口（三尺寸分离）
 export interface Cat {
   id: string;
@@ -51,6 +54,10 @@ export interface Cat {
   color: string;
   rotation: number; // 旋转角度（弧度）
   speed: number; // 移动速度（像素/帧）
+  targetX: number; // AI 目标点 X
+  targetY: number; // AI 目标点 Y
+  state: CatState; // 当前行为状态
+  idleTimer: number; // 静止计时器（帧数）
 }
 
 // 游戏状态接口

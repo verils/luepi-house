@@ -28,7 +28,7 @@ export class GameRenderer {
 
     // 初始化猫咪渲染器映射
     this.defaultCatRenderer = new DefaultCatRenderer(this.ctx);
-    this.catRenderers = new Map([
+    this.catRenderers = new Map<string, CatRenderer>([
       [ 'luelue', new LuelueCatRenderer(ctx) ],
       [ 'pipi', new PipiCatRenderer(ctx) ],
     ]);
