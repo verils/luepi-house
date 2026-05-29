@@ -105,7 +105,7 @@
   />
 
   <div class="ui-overlay">
-    <h1 class="title">Cat House</h1>
+    <h1 class="title">LuePi House</h1>
 
     {#if showCatInfo && selectedCat}
       <CatInfoPanel cat={selectedCat} onclose={handleCatDeselect} />
@@ -128,12 +128,6 @@
     margin: 0;
     padding: 0;
     overflow: hidden;
-  }
-
-  :global(.game-canvas) {
-    display: block;
-    width: 100%;
-    height: 100%;
   }
 
   .game-container {

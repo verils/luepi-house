@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { GameRenderer, Camera } from './lib/game';
-  import type { GameState, Cat } from './lib/game/types';
+  import { GameRenderer } from './lib/game';
+  import type { GameState, Cat } from './lib/game';
 
   interface Props {
     gameState: GameState | null;
