@@ -4,7 +4,7 @@
   import type { GameRenderer, Camera } from './lib/game';
   import { HOUSE_SIZE, WALL_THICKNESS } from './lib/game';
   import GameCanvas from './GameCanvas.svelte';
-  import CatInfoPanel from './CatInfoPanel.svelte';
+  import InfoPanel from './InfoPanel.svelte';
 
   let gameState = $state<any>(null);
   let gameRenderer = $state<GameRenderer | null>(null);
@@ -108,7 +108,7 @@
     <h1 class="title">LuePi House</h1>
 
     {#if showCatInfo && selectedCat}
-      <CatInfoPanel cat={selectedCat} onclose={handleCatDeselect} />
+      <InfoPanel cat={selectedCat} onclose={handleCatDeselect} />
     {/if}
 
     <div class="controls">

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Cat } from './lib/game/types';
+  import type { Cat } from './lib/game';
 
   let { cat, onclose }: {
     cat: Cat;
