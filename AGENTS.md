@@ -50,53 +50,19 @@
 ## 🛠️ 技术栈与架构
 
 ### 开发工具链
-- **包管理器**: pnpm (v11.1.2)
-- **构建工具**: Vite (v8.0.7)
-- **类型检查**: TypeScript (v6.0.2)
-- **测试框架**: Vitest (v4.1.6) + Testing Library
+
+- **包管理器**: node (v22)
+- **包管理器**: pnpm (v11)
+- **构建工具**: Vite (v8)
+- **类型检查**: TypeScript (v6)
+- **测试框架**: Vitest (v4.1) + Testing Library
 
 ### UI 框架
+
 - **Svelte 5 (Runes)** - 现代响应式UI框架
 - **状态管理**: Svelte Stores / Context API
 
 ### 核心功能库
+
 - **渲染引擎**: HTML5 Canvas API
 - **物理引擎**: Matter.js (计划中，目前使用自定义基础碰撞逻辑)
-
-## 🏗️ 项目结构概览
-
-```
-cat-house/
-├── src/
-│   ├── lib/
-│   │   ├── assets/         # 静态资源（图片、音频等）
-│   │   └── game/           # 游戏核心逻辑
-│   │       ├── camera.ts   # 摄影机控制（平移、缩放）
-│   │       ├── init.ts     # 游戏状态初始化
-│   │       ├── renderer.ts # Canvas 渲染器
-│   │       ├── types.ts    # 类型定义与常量
-│   │       └── index.ts    # 模块导出
-│   ├── App.svelte          # 根组件（集成 Canvas 与 UI）
-│   ├── app.css             # 全局样式
-│   └── main.ts             # 应用入口
-├── static/                 # 公共静态文件
-├── package.json            # 项目依赖与脚本
-├── vite.config.ts          # Vite 配置
-└── tsconfig.json           # TypeScript 配置
-```
-
-## 🚀 快速启动指南
-
-### 环境要求
-- **Node.js**: v22.x 或更高版本
-- **pnpm**: v9.x 或更高版本
-
-### 启动步骤
-1. **安装依赖**: `pnpm install`
-2. **启动开发服务器**: `pnpm dev` (默认端口 5173，若占用则自动顺延)
-3. **访问应用**: 打开浏览器访问 `http://localhost:5173`
-
-### 常用命令
-- `pnpm build`: 构建生产版本
-- `pnpm preview`: 预览生产构建
-- `pnpm test`: 运行单元测试
