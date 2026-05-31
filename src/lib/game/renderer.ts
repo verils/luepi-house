@@ -1,4 +1,4 @@
-import type { GameState, Tile, Wall, House, Cat, Shelter, CatBed } from './types';
+import type { GameState, Tile, Wall, Cat, Shelter, CatBed } from './types';
 import { TILE_SIZE, WALL_THICKNESS, HOUSE_SIZE, FloorType, WallType } from './types';
 import { Camera } from './camera';
 import { LuelueCatRenderer, PipiCatRenderer, DefaultCatRenderer, CatRenderer } from './cat-renderer';
