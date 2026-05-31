@@ -5,3 +5,4 @@ export * from './camera';
 export * from './cat-renderer';
 export * from './cat-movement';
 export * from './cat-ai';
+export * from './texture-manager';
