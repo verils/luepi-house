@@ -81,8 +81,19 @@ export interface MapConfig {
   defaultFloor: FloorType; // 默认地板类型
 }
 
-// 猫咪状态
-export type CatState = 'idle' | 'moving' | 'sleeping' | 'hiding';
+// 猫咪动作状态
+export type CatActionState =
+  | 'idle'
+  | 'moving'
+  | 'sleeping'
+  | 'hiding'
+  | 'chasing'
+  | 'fleeing'
+  | 'grooming'
+  | 'playFighting';
+
+// 猫咪情绪状态
+export type CatMood = 'low' | 'calm' | 'excited';
 
 // 猫咪接口（三尺寸分离）
 export interface Cat {
@@ -99,14 +110,27 @@ export interface Cat {
   interactionRadius: number;
   color: string;
   rotation: number; // 旋转角度（弧度）
-  speed: number; // 移动速度（像素/帧）
+  speed: number; // 基础移动速度（像素/帧）
   targetX: number; // AI 目标点 X
   targetY: number; // AI 目标点 Y
-  state: CatState; // 当前行为状态
+  action: CatActionState; // 当前动作状态
   idleTimer: number; // 静止计时器（帧数）
-  stateTimer: number; // 状态持续计时器（帧数）
+  actionTimer: number; // 动作持续计时器（帧数）
   blinkTimer: number; // 眨眼计时器
   isBlinking: boolean; // 是否正在眨眼
+  // 情绪系统
+  mood: CatMood; // 当前情绪
+  moodTimer: number; // 情绪持续时间（帧数）
+  // 追逐系统
+  chaseTargetId: string | null; // 追逐目标猫的id
+  actionSwitchTimer: number; // 动作切换计时器（兴奋期间使用）
+}
+
+// 追逐配对接口
+export interface ChasePair {
+  chaserId: string; // 追逐者
+  targetId: string; // 被追者
+  switchChance: number; // 反转追逐的概率
 }
 
 // 游戏状态接口

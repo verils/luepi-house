@@ -17,6 +17,8 @@
     <p><strong>颜色:</strong> <span style="color: {cat.color};">●</span> {cat.color}</p>
     <p><strong>速度:</strong> {cat.speed} px/帧</p>
     <p><strong>位置:</strong> ({Math.round(cat.x)}, {Math.round(cat.y)})</p>
+    <p><strong>动作:</strong> {cat.action}</p>
+    <p><strong>情绪:</strong> {cat.mood === 'low' ? '低落' : cat.mood === 'calm' ? '平静' : '兴奋'}</p>
     <p><strong>碰撞半径:</strong> {cat.collisionRadius}px</p>
     <p><strong>交互半径:</strong> {cat.interactionRadius}px</p>
   </div>

@@ -50,10 +50,14 @@ export function createCatFromConfig(config: CatConfig, x: number, y: number): Ca
     speed: config.speed,
     targetX: x,
     targetY: y,
-    state: 'idle',
+    action: 'idle',
     idleTimer: 30 + Math.floor(Math.random() * 60),
-    stateTimer: 0,
+    actionTimer: 0,
     blinkTimer: 120 + Math.floor(Math.random() * 120),
     isBlinking: false,
+    mood: 'calm',
+    moodTimer: 0,
+    chaseTargetId: null,
+    actionSwitchTimer: 0,
   };
 }
