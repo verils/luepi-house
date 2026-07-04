@@ -92,10 +92,6 @@ function updateMovingState(cat: Cat, ctx: StateContext): void {
 }
 
 function updateSleepingState(cat: Cat, ctx: StateContext): void {
-  if (cat.stateTimer < 60) {
-    moveTowardTarget(cat, cat.targetX, cat.targetY);
-  }
-
   if (cat.stateTimer > 300 + Math.random() * 300) {
     cat.state = 'idle';
     cat.idleTimer = 60 + Math.floor(Math.random() * 120);
@@ -104,10 +100,6 @@ function updateSleepingState(cat: Cat, ctx: StateContext): void {
 }
 
 function updateHidingState(cat: Cat, ctx: StateContext): void {
-  if (cat.stateTimer < 90) {
-    moveTowardTarget(cat, cat.targetX, cat.targetY);
-  }
-
   if (cat.stateTimer > 240 + Math.random() * 360) {
     cat.state = 'idle';
     cat.idleTimer = 60 + Math.floor(Math.random() * 120);
@@ -124,52 +116,17 @@ function enterMovingState(cat: Cat): void {
 }
 
 function enterSleepingState(cat: Cat, ctx: StateContext): void {
-  const bed = ctx.catBeds[Math.floor(Math.random() * ctx.catBeds.length)];
-  cat.targetX = bed.x + bed.width / 2 - cat.visualWidth / 2;
-  cat.targetY = bed.y + bed.height / 2 - cat.visualHeight / 2;
+  cat.targetX = cat.x;
+  cat.targetY = cat.y;
   cat.state = 'sleeping';
   cat.stateTimer = 0;
 }
 
 function enterHidingState(cat: Cat, ctx: StateContext): void {
-  let nearestShelter = ctx.shelters[0];
-  let minDist = Infinity;
-
-  for (const shelter of ctx.shelters) {
-    const dx = (shelter.x + shelter.width / 2) - cat.x;
-    const dy = (shelter.y + shelter.height / 2) - cat.y;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-    if (dist < minDist) {
-      minDist = dist;
-      nearestShelter = shelter;
-    }
-  }
-
-  cat.targetX = nearestShelter.x + nearestShelter.width / 2 - cat.visualWidth / 2;
-  cat.targetY = nearestShelter.y + nearestShelter.height / 2 - cat.visualHeight / 2;
+  cat.targetX = cat.x;
+  cat.targetY = cat.y;
   cat.state = 'hiding';
   cat.stateTimer = 0;
-}
-
-function moveTowardTarget(cat: Cat, targetX: number, targetY: number): void {
-  const dx = targetX - cat.x;
-  const dy = targetY - cat.y;
-  const distance = Math.sqrt(dx * dx + dy * dy);
-
-  if (distance <= ARRIVAL_THRESHOLD) {
-    cat.x = targetX;
-    cat.y = targetY;
-    return;
-  }
-
-  const dirX = dx / distance;
-  const dirY = dy / distance;
-
-  cat.x += dirX * cat.speed;
-  cat.y += dirY * cat.speed;
-
-  cat.x = clampToHouseX(cat.x, cat.collisionRadius);
-  cat.y = clampToHouseY(cat.y, cat.collisionRadius);
 }
 
 function clampToHouseX(x: number, radius: number): number {
