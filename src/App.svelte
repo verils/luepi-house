@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { initGameState, updateCatAI, updateCatMovement } from './lib/game';
-  import type { GameRenderer, Camera } from './lib/game';
+  import { initGameState, updateCatState } from './lib/game';
+  import type { GameRenderer, Camera, StateContext } from './lib/game';
   import { HOUSE_SIZE, WALL_THICKNESS } from './lib/game';
   import GameCanvas from './GameCanvas.svelte';
   import InfoPanel from './InfoPanel.svelte';
@@ -54,9 +54,14 @@
       return;
     }
 
+    const stateCtx: StateContext = {
+      shelters: gameState.shelters,
+      catBeds: gameState.catBeds,
+      allCats: gameState.cats,
+    };
+
     for (const cat of gameState.cats) {
-      updateCatAI(cat);
-      updateCatMovement(cat);
+      updateCatState(cat, stateCtx);
     }
 
     gameRenderer.render(gameState);

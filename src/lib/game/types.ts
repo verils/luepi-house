@@ -82,7 +82,7 @@ export interface MapConfig {
 }
 
 // 猫咪状态
-export type CatState = 'idle' | 'moving';
+export type CatState = 'idle' | 'moving' | 'sleeping' | 'hiding';
 
 // 猫咪接口（三尺寸分离）
 export interface Cat {
@@ -104,6 +104,9 @@ export interface Cat {
   targetY: number; // AI 目标点 Y
   state: CatState; // 当前行为状态
   idleTimer: number; // 静止计时器（帧数）
+  stateTimer: number; // 状态持续计时器（帧数）
+  blinkTimer: number; // 眨眼计时器
+  isBlinking: boolean; // 是否正在眨眼
 }
 
 // 游戏状态接口

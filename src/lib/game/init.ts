@@ -126,6 +126,9 @@ function initCats(house: House): Cat[] {
       targetY: house.y + HOUSE_SIZE / 2,
       state: 'idle',
       idleTimer: 30,
+      stateTimer: 0,
+      blinkTimer: 120,
+      isBlinking: false,
     },
     {
       id: 'pipi',
@@ -143,6 +146,9 @@ function initCats(house: House): Cat[] {
       targetY: house.y + HOUSE_SIZE / 2,
       state: 'idle',
       idleTimer: 60,
+      stateTimer: 0,
+      blinkTimer: 180,
+      isBlinking: false,
     },
   ];
 }

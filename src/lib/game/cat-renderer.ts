@@ -14,35 +14,28 @@ export abstract class CatRenderer {
    * 渲染猫咪（模板方法）
    */
   render(cat: Cat): void {
-    const scale = cat.visualWidth / 32; // 基于32x32标准尺寸的缩放比例
-    
+    const scale = cat.visualWidth / 32;
+
     this.ctx.save();
-    
-    // 绘制阴影
+
+    if (cat.state === 'hiding') {
+      this.ctx.globalAlpha = 0.5;
+    }
+
     this.renderShadow(cat, scale);
-    
-    // 绘制身体
     this.renderBody(cat, scale);
-    
-    // 绘制头部
     this.renderHead(cat, scale);
-    
-    // 绘制耳朵
     this.renderEars(cat, scale);
-    
-    // 绘制面部特征
     this.renderFace(cat, scale);
-    
-    // 绘制尾巴
     this.renderTail(cat, scale);
-    
-    // 绘制爪子
     this.renderPaws(cat, scale);
-    
-    // 子类可以添加特殊装饰
     this.renderAccessories(cat, scale);
-    
+
     this.ctx.restore();
+
+    if (cat.state === 'sleeping') {
+      this.renderSleepBubble(cat, scale);
+    }
   }
   
   /**
@@ -83,16 +76,59 @@ export abstract class CatRenderer {
    * 绘制眼睛（默认实现）
    */
   protected renderEyes(cat: Cat, scale: number): void {
-    this.ctx.fillStyle = '#6BCB77'; // 翠绿色
-    // 左眼
+    if (cat.state === 'sleeping' || cat.isBlinking) {
+      this.renderClosedEyes(cat, scale);
+      return;
+    }
+
+    this.ctx.fillStyle = '#6BCB77';
     this.ctx.beginPath();
     this.ctx.arc(-4 * scale, -7 * scale, 2 * scale, 0, Math.PI * 2);
     this.ctx.fill();
-    
-    // 右眼
+
     this.ctx.beginPath();
     this.ctx.arc(4 * scale, -7 * scale, 2 * scale, 0, Math.PI * 2);
     this.ctx.fill();
+  }
+
+  /**
+   * 绘制闭合眼睛
+   */
+  protected renderClosedEyes(cat: Cat, scale: number): void {
+    this.ctx.strokeStyle = '#000000';
+    this.ctx.lineWidth = 1.5 * scale;
+    this.ctx.lineCap = 'round';
+
+    this.ctx.beginPath();
+    this.ctx.arc(-4 * scale, -7 * scale, 2 * scale, 0.1 * Math.PI, 0.9 * Math.PI);
+    this.ctx.stroke();
+
+    this.ctx.beginPath();
+    this.ctx.arc(4 * scale, -7 * scale, 2 * scale, 0.1 * Math.PI, 0.9 * Math.PI);
+    this.ctx.stroke();
+  }
+
+  /**
+   * 绘制睡眠气泡 "Zzz"
+   */
+  protected renderSleepBubble(cat: Cat, scale: number): void {
+    const bobOffset = Math.sin(cat.stateTimer * 0.05) * 2 * scale;
+    const bubbleX = 14 * scale;
+    const bubbleY = -18 * scale + bobOffset;
+
+    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+    this.ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+    this.ctx.lineWidth = 1;
+    this.ctx.beginPath();
+    this.ctx.ellipse(bubbleX, bubbleY, 10 * scale, 7 * scale, 0, 0, Math.PI * 2);
+    this.ctx.fill();
+    this.ctx.stroke();
+
+    this.ctx.fillStyle = '#6B7280';
+    this.ctx.font = `bold ${8 * scale}px sans-serif`;
+    this.ctx.textAlign = 'center';
+    this.ctx.textBaseline = 'middle';
+    this.ctx.fillText('Zzz', bubbleX, bubbleY);
   }
   
   /**
@@ -263,22 +299,23 @@ export class LuelueCatRenderer extends CatRenderer {
   }
   
   protected renderEyes(cat: Cat, scale: number): void {
-    // 翠绿色眼睛
+    if (cat.state === 'sleeping' || cat.isBlinking) {
+      this.renderClosedEyes(cat, scale);
+      return;
+    }
+
     this.ctx.fillStyle = '#6BCB77';
-    
-    // 左眼
     this.ctx.beginPath();
     this.ctx.arc(-4 * scale, -7 * scale, 2 * scale, 0, Math.PI * 2);
     this.ctx.fill();
-    
-    // 右眼
+
     this.ctx.beginPath();
     this.ctx.arc(4 * scale, -7 * scale, 2 * scale, 0, Math.PI * 2);
     this.ctx.fill();
   }
-  
+
   protected renderNose(cat: Cat, scale: number): void {
-    // 粉橘色鼻子
+    this.ctx.fillStyle = '#FFB6A0';
     this.ctx.fillStyle = '#FFB6A0';
     this.ctx.beginPath();
     this.ctx.arc(0, -4 * scale, 1.5 * scale, 0, Math.PI * 2);
@@ -397,22 +434,23 @@ export class PipiCatRenderer extends CatRenderer {
   }
   
   protected renderEyes(cat: Cat, scale: number): void {
-    // 宝石蓝色眼睛（暹罗猫标志性蓝眼）
+    if (cat.state === 'sleeping' || cat.isBlinking) {
+      this.renderClosedEyes(cat, scale);
+      return;
+    }
+
     this.ctx.fillStyle = '#4D96FF';
-    
-    // 左眼
     this.ctx.beginPath();
     this.ctx.arc(-4 * scale, -7 * scale, 2 * scale, 0, Math.PI * 2);
     this.ctx.fill();
-    
-    // 右眼
+
     this.ctx.beginPath();
     this.ctx.arc(4 * scale, -7 * scale, 2 * scale, 0, Math.PI * 2);
     this.ctx.fill();
   }
-  
+
   protected renderNose(cat: Cat, scale: number): void {
-    // 深巧克力色鼻子
+    this.ctx.fillStyle = '#5C3A21';
     this.ctx.fillStyle = '#5C3A21';
     this.ctx.beginPath();
     this.ctx.arc(0, -4 * scale, 1.5 * scale, 0, Math.PI * 2);
