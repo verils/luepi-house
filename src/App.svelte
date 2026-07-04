@@ -1,35 +1,39 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { initGameState, updateCatState } from './lib/game';
+  import { updateCatState } from './lib/game';
   import type { GameRenderer, Camera, StateContext } from './lib/game';
   import { HOUSE_SIZE, WALL_THICKNESS } from './lib/game';
+  import {
+    gameState,
+    selectedCat,
+    showCatInfo,
+    debugMode,
+    currentFPS,
+    initializeGame,
+    selectCat,
+    deselectCat,
+  } from './lib/stores/gameStore';
   import GameCanvas from './GameCanvas.svelte';
   import InfoPanel from './InfoPanel.svelte';
 
-  let gameState = $state<any>(null);
   let gameRenderer = $state<GameRenderer | null>(null);
   let camera = $state<Camera | null>(null);
-
-  let selectedCat = $state<any>(null);
-  let showCatInfo = $state(false);
-
   let animationFrameId = 0;
 
-  let debugMode = $state(
-    (() => {
-      const p = new URLSearchParams(location.search).get('debug');
-      return p === 'true' || p === 'yes' || p === '1';
-    })()
-  );
+  let fpsFrames = 0;
+  let fpsLastTime = performance.now();
+
+  $effect(() => {
+    const p = new URLSearchParams(location.search).get('debug');
+    debugMode.set(p === 'true' || p === 'yes' || p === '1');
+  });
 
   onMount(() => {
-    gameState = initGameState();
+    const state = initializeGame();
 
     camera = gameRenderer!.getCamera();
-
     centerCameraOnHouse();
-
-    gameRenderer!.render(gameState);
+    gameRenderer!.render(state);
 
     animationFrameId = requestAnimationFrame(gameLoop);
   });
@@ -49,60 +53,86 @@
   }
 
   function gameLoop() {
-    if (!gameState || !gameRenderer) {
+    let state: any;
+    const unsub = gameState.subscribe((s) => (state = s));
+
+    if (!state || !gameRenderer) {
+      unsub();
       animationFrameId = requestAnimationFrame(gameLoop);
       return;
     }
 
+    fpsFrames++;
+    const now = performance.now();
+    if (now - fpsLastTime >= 1000) {
+      currentFPS.set(fpsFrames);
+      fpsFrames = 0;
+      fpsLastTime = now;
+    }
+
     const stateCtx: StateContext = {
-      shelters: gameState.shelters,
-      catBeds: gameState.catBeds,
-      allCats: gameState.cats,
+      shelters: state.shelters,
+      catBeds: state.catBeds,
+      allCats: state.cats,
     };
 
-    for (const cat of gameState.cats) {
+    for (const cat of state.cats) {
       updateCatState(cat, stateCtx);
     }
 
-    gameRenderer.render(gameState);
+    gameRenderer.render(state);
+    unsub();
+
     animationFrameId = requestAnimationFrame(gameLoop);
   }
 
   function resetCamera() {
-    if (!camera || !gameRenderer || !gameState) return;
+    if (!camera || !gameRenderer) return;
+    let state: any;
+    const unsub = gameState.subscribe((s) => (state = s));
+    unsub();
+    if (!state) return;
+
     camera.x = 0;
     camera.y = 0;
     camera.zoom = 1;
     centerCameraOnHouse();
-    gameRenderer.render(gameState);
+    gameRenderer.render(state);
   }
 
   function zoomIn() {
-    if (!camera || !gameRenderer || !gameState) return;
+    if (!camera || !gameRenderer) return;
+    let state: any;
+    const unsub = gameState.subscribe((s) => (state = s));
+    unsub();
+    if (!state) return;
+
     camera.zoomAt(1.2);
-    gameRenderer.render(gameState);
+    gameRenderer.render(state);
   }
 
   function zoomOut() {
-    if (!camera || !gameRenderer || !gameState) return;
+    if (!camera || !gameRenderer) return;
+    let state: any;
+    const unsub = gameState.subscribe((s) => (state = s));
+    unsub();
+    if (!state) return;
+
     camera.zoomAt(0.8);
-    gameRenderer.render(gameState);
+    gameRenderer.render(state);
   }
 
   function handleCatClick(cat: any) {
-    selectedCat = cat;
-    showCatInfo = true;
+    selectCat(cat);
   }
 
   function handleCatDeselect() {
-    showCatInfo = false;
-    selectedCat = null;
+    deselectCat();
   }
 </script>
 
 <div class="game-container">
   <GameCanvas
-    {gameState}
     {debugMode}
     bind:renderer={gameRenderer}
     oncatclick={handleCatClick}
@@ -112,9 +142,13 @@
   <div class="ui-overlay">
     <h1 class="title">LuePi House</h1>
 
-    {#if showCatInfo && selectedCat}
-      <InfoPanel cat={selectedCat} onclose={handleCatDeselect} />
+    {#if $showCatInfo && $selectedCat}
+      <InfoPanel cat={$selectedCat} onclose={handleCatDeselect} />
     {/if}
+
+    <div class="fps-counter">
+      FPS: {$currentFPS}
+    </div>
 
     <div class="controls">
       <button class="control-btn" onclick={resetCamera}>重置视图</button>
@@ -164,6 +198,18 @@
     text-shadow: 2px 2px 4px rgba(255, 255, 255, 0.8);
     pointer-events: auto;
     align-self: flex-start;
+  }
+
+  .fps-counter {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    color: #666;
+    font-size: 12px;
+    font-family: monospace;
+    background: rgba(255, 255, 255, 0.7);
+    padding: 4px 8px;
+    border-radius: 4px;
   }
 
   .controls {

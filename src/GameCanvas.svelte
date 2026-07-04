@@ -1,19 +1,16 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { GameRenderer } from './lib/game';
-  import type { GameState, Cat } from './lib/game';
+  import type { Cat } from './lib/game';
+  import { gameState, debugMode } from './lib/stores/gameStore';
 
   interface Props {
-    gameState: GameState | null;
-    debugMode: boolean;
     oncatclick: (cat: Cat) => void;
     oncatdeselect: () => void;
     renderer: GameRenderer | null;
   }
 
   let {
-    gameState,
-    debugMode = false,
     oncatclick = () => {},
     oncatdeselect = () => {},
     renderer = $bindable<GameRenderer | null>(null),
@@ -23,6 +20,16 @@
   let isDragging = false;
   let lastMouseX = 0;
   let lastMouseY = 0;
+
+  let currentState: any = null;
+  const unsubGameState = gameState.subscribe((s) => (currentState = s));
+  let isDebug = false;
+  const unsubDebug = debugMode.subscribe((d) => (isDebug = d));
+
+  onDestroy(() => {
+    unsubGameState();
+    unsubDebug();
+  });
 
   function resizeCanvas() {
     if (!canvas) return;
@@ -42,7 +49,7 @@
 
     resizeCanvas();
 
-    renderer = new GameRenderer(canvas, debugMode);
+    renderer = new GameRenderer(canvas, isDebug);
 
     canvas.addEventListener('mousedown', handleMouseDown);
     canvas.addEventListener('mousemove', handleMouseMove);
@@ -63,7 +70,7 @@
 
   function handleResize() {
     resizeCanvas();
-    if (renderer && gameState) renderer.render(gameState);
+    if (renderer && currentState) renderer.render(currentState);
   }
 
   function handleMouseDown(e: MouseEvent) {
@@ -88,7 +95,7 @@
     camera.pan(deltaX, deltaY);
     lastMouseX = e.clientX;
     lastMouseY = e.clientY;
-    if (gameState) renderer.render(gameState);
+    if (currentState) renderer.render(currentState);
   }
 
   function handleMouseUp() {
@@ -107,11 +114,11 @@
     const camera = renderer.getCamera();
     const scaleFactor = e.deltaY > 0 ? 0.9 : 1.1;
     camera.zoomAt(scaleFactor, e.offsetX, e.offsetY);
-    if (gameState) renderer.render(gameState);
+    if (currentState) renderer.render(currentState);
   }
 
   function handleKeyDown(e: KeyboardEvent) {
-    if (!renderer || !gameState) return;
+    if (!renderer || !currentState) return;
     const camera = renderer.getCamera();
     const panSpeed = 20;
 
@@ -126,13 +133,13 @@
     }
 
     e.preventDefault();
-    renderer.render(gameState);
+    renderer.render(currentState);
   }
 
   function checkCatClick(mouseX: number, mouseY: number, camera?: ReturnType<GameRenderer['getCamera']>): Cat | null {
-    if (!gameState || !camera) return null;
+    if (!currentState || !camera) return null;
     const worldPos = camera.screenToWorld(mouseX, mouseY);
-    for (const cat of gameState.cats) {
+    for (const cat of currentState.cats) {
       const dx = worldPos.x - (cat.x + cat.visualWidth / 2);
       const dy = worldPos.y - (cat.y + cat.visualHeight / 2);
       const distance = Math.sqrt(dx * dx + dy * dy);
