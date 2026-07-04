@@ -89,10 +89,6 @@ function updateMovingState(cat: Cat, ctx: StateContext): void {
 
   cat.x = newX;
   cat.y = newY;
-
-  if (Math.abs(dirX) > 0.01 || Math.abs(dirY) > 0.01) {
-    cat.rotation = Math.atan2(dirY, dirX) + Math.PI / 2;
-  }
 }
 
 function updateSleepingState(cat: Cat, ctx: StateContext): void {
