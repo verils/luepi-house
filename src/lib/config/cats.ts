@@ -1,5 +1,7 @@
 import { CAT_VISUAL_SIZE } from '../game/types';
-import type { Cat } from '../game/types';
+import type { Cat, CatPersonality } from '../game/types';
+import { createPersonality } from '../game/personality';
+import { createMoodState } from '../game/mood-system';
 
 export interface CatConfig {
   id: string;
@@ -10,6 +12,7 @@ export interface CatConfig {
   collisionRadius: number;
   interactionRadius: number;
   speed: number;
+  personality: CatPersonality;
 }
 
 export const CAT_CONFIGS: CatConfig[] = [
@@ -22,6 +25,18 @@ export const CAT_CONFIGS: CatConfig[] = [
     collisionRadius: 16,
     interactionRadius: 20,
     speed: 1.5,
+    personality: {
+      curiosity: 80,
+      energy: 85,
+      sociability: 70,
+      bravery: 60,
+      independence: 30,
+      appetite: 75,
+      cleanliness: 50,
+      playfulness: 90,
+      alertness: 65,
+      patience: 40,
+    },
   },
   {
     id: 'pipi',
@@ -32,6 +47,18 @@ export const CAT_CONFIGS: CatConfig[] = [
     collisionRadius: 14,
     interactionRadius: 18,
     speed: 1.2,
+    personality: {
+      curiosity: 60,
+      energy: 50,
+      sociability: 80,
+      bravery: 40,
+      independence: 20,
+      appetite: 55,
+      cleanliness: 85,
+      playfulness: 45,
+      alertness: 70,
+      patience: 75,
+    },
   },
 ];
 
@@ -55,9 +82,10 @@ export function createCatFromConfig(config: CatConfig, x: number, y: number): Ca
     actionTimer: 0,
     blinkTimer: 120 + Math.floor(Math.random() * 120),
     isBlinking: false,
-    mood: 'calm',
+    mood: createMoodState(),
     moodTimer: 0,
     chaseTargetId: null,
     actionSwitchTimer: 0,
+    personality: createPersonality(config.personality),
   };
 }

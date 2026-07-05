@@ -90,10 +90,37 @@ export type CatActionState =
   | 'chasing'
   | 'fleeing'
   | 'grooming'
-  | 'playFighting';
+  | 'playFighting'
+  | 'eating'
+  | 'drinking'
+  | 'exploring'
+  | 'socializing'
+  | 'watching'
+  | 'climbing';
 
-// 猫咪情绪状态
+// 猫咪情绪状态（重构为连续数值）
+export interface CatMoodState {
+  value: number;           // 0-100 当前情绪值
+  decayRate: number;       // 基础衰减率
+  lastEventTime: number;   // 上次事件时间
+}
+
+// 保留旧类型用于兼容
 export type CatMood = 'low' | 'calm' | 'excited';
+
+// 猫咪个性接口
+export interface CatPersonality {
+  curiosity: number;      // 0-100 好奇心
+  energy: number;         // 0-100 活泼度
+  sociability: number;    // 0-100 社交性
+  bravery: number;        // 0-100 勇敢度
+  independence: number;   // 0-100 独立性
+  appetite: number;       // 0-100 贪吃
+  cleanliness: number;    // 0-100 爱干净
+  playfulness: number;    // 0-100 调皮
+  alertness: number;      // 0-100 警觉性
+  patience: number;       // 0-100 耐心
+}
 
 // 猫咪接口（三尺寸分离）
 export interface Cat {
@@ -119,11 +146,13 @@ export interface Cat {
   blinkTimer: number; // 眨眼计时器
   isBlinking: boolean; // 是否正在眨眼
   // 情绪系统
-  mood: CatMood; // 当前情绪
-  moodTimer: number; // 情绪持续时间（帧数）
+  mood: import('./mood-system').CatMoodState; // 当前情绪状态
+  moodTimer: number; // 情绪持续时间（帧数）- 保留用于兼容
   // 追逐系统
   chaseTargetId: string | null; // 追逐目标猫的id
   actionSwitchTimer: number; // 动作切换计时器（兴奋期间使用）
+  // 个性系统
+  personality: CatPersonality; // 猫咪个性
 }
 
 // 追逐配对接口
@@ -142,4 +171,7 @@ export interface GameState {
   tiles: Tile[];
   shelters: Shelter[];
   catBeds: CatBed[];
+  time: import('./time-system').TimeState; // 时间状态
+  weather: import('./weather-system').WeatherState; // 天气状态
+  eventLog: import('./event-log').EventLogState; // 事件日志
 }

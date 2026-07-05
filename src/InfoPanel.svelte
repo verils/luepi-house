@@ -1,10 +1,19 @@
 <script lang="ts">
   import type { Cat } from './lib/game';
+  import { getMoodThreshold } from './lib/game/mood-system';
 
   let { cat, onclose }: {
     cat: Cat;
     onclose: () => void;
   } = $props();
+
+  const moodThreshold = $derived(getMoodThreshold(cat.mood.value));
+  const moodName = $derived(
+    moodThreshold === 'depressed' ? '沮丧' :
+    moodThreshold === 'calm' ? '平静' :
+    moodThreshold === 'content' ? '满足' :
+    moodThreshold === 'excited' ? '兴奋' : '极度兴奋'
+  );
 </script>
 
 <div class="cat-info-panel">
@@ -18,7 +27,7 @@
     <p><strong>速度:</strong> {cat.speed} px/帧</p>
     <p><strong>位置:</strong> ({Math.round(cat.x)}, {Math.round(cat.y)})</p>
     <p><strong>动作:</strong> {cat.action}</p>
-    <p><strong>情绪:</strong> {cat.mood === 'low' ? '低落' : cat.mood === 'calm' ? '平静' : '兴奋'}</p>
+    <p><strong>情绪:</strong> {moodName} ({Math.round(cat.mood.value)})</p>
     <p><strong>碰撞半径:</strong> {cat.collisionRadius}px</p>
     <p><strong>交互半径:</strong> {cat.interactionRadius}px</p>
   </div>

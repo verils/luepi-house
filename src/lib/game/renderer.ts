@@ -3,6 +3,8 @@ import { TILE_SIZE, WALL_THICKNESS, HOUSE_SIZE, FloorType, WallType } from './ty
 import { Camera } from './camera';
 import { LuelueCatRenderer, PipiCatRenderer, DefaultCatRenderer, CatRenderer } from './cat-renderer';
 import { TextureManager } from './texture-manager';
+import { getTimeOverlayColor, getPhaseProgress } from './time-system';
+import { getWeatherBackgroundColor } from './weather-system';
 
 /**
  * 游戏渲染器
@@ -55,7 +57,42 @@ export class GameRenderer {
     this.renderWalls(state.walls);
     this.renderCats(state.cats);
 
+    // 应用时间色调叠加
+    this.applyTimeOverlay(state.time);
+    
+    // 应用天气效果（窗外背景）
+    this.applyWeatherEffect(state.weather);
+
     this.camera.restore(this.ctx);
+  }
+
+  /**
+   * 应用时间色调叠加
+   */
+  private applyTimeOverlay(time: GameState['time']): void {
+    const progress = getPhaseProgress(time.hour, time.minute);
+    const { color, opacity } = getTimeOverlayColor(time.phase);
+    
+    if (opacity > 0) {
+      this.ctx.save();
+      this.ctx.fillStyle = color;
+      this.ctx.globalAlpha = opacity;
+      this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+      this.ctx.restore();
+    }
+  }
+
+  /**
+   * 应用天气效果（窗外背景）
+   */
+  private applyWeatherEffect(weather: GameState['weather']): void {
+    // 天气效果仅影响窗外背景，这里简化实现
+    // 实际应该在窗户位置绘制天气背景
+    // 暂时使用全局色调叠加来表示天气
+    const backgroundColor = getWeatherBackgroundColor(weather);
+    
+    // 这里可以添加更复杂的天气效果，如雨滴、雪花粒子等
+    // 目前简化为背景色变化
   }
 
   /**

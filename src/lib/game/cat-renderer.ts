@@ -1,4 +1,5 @@
 import type { Cat } from './types';
+import { getMoodThreshold } from './mood-system';
 
 /**
  * 猫咪渲染器基类
@@ -22,7 +23,8 @@ export abstract class CatRenderer {
       this.ctx.globalAlpha = 0.5;
     }
 
-    if (cat.mood === 'excited' && (cat.action === 'chasing' || cat.action === 'fleeing')) {
+    const moodThreshold = getMoodThreshold(cat.mood.value);
+    if ((moodThreshold === 'excited' || moodThreshold === 'euphoric') && (cat.action === 'chasing' || cat.action === 'fleeing')) {
       this.renderSpeedLines(cat, scale);
     }
 
@@ -49,11 +51,12 @@ export abstract class CatRenderer {
       this.renderGroomingEffect(cat, scale);
     }
 
-    if (cat.mood === 'excited') {
+    const moodThresholdAfter = getMoodThreshold(cat.mood.value);
+    if (moodThresholdAfter === 'excited' || moodThresholdAfter === 'euphoric') {
       this.renderExcitementSparkles(cat, scale);
     }
 
-    if (cat.mood === 'low') {
+    if (moodThresholdAfter === 'depressed') {
       this.renderLowMoodEffect(cat, scale);
     }
   }

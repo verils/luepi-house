@@ -8,6 +8,9 @@ import {
 } from './types';
 import { MAP_CONFIG } from '../config/map';
 import { CAT_CONFIGS, createCatFromConfig } from '../config/cats';
+import { createTimeState } from './time-system';
+import { createEventLogState } from './event-log';
+import { createWeatherState } from './weather-system';
 
 function initTiles(): Tile[] {
   const tiles: Tile[] = [];
@@ -49,6 +52,9 @@ export function initGameState(): GameState {
 
   const tiles = initTiles();
   const cats = initCats();
+  const time = createTimeState();
+  const weather = createWeatherState();
+  const eventLog = createEventLogState();
 
   return {
     map,
@@ -58,5 +64,8 @@ export function initGameState(): GameState {
     tiles,
     shelters: map.shelters,
     catBeds: map.catBeds,
+    time,
+    weather,
+    eventLog,
   };
 }

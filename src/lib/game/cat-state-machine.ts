@@ -1,5 +1,9 @@
 import type { Cat, CatActionState, CatMood, Shelter, CatBed } from './types';
 import { WALL_THICKNESS, HOUSE_SIZE } from './types';
+import { calculateBehaviorWeight, getChaseReverseChance, getIdleDurationModifier } from './personality';
+import { updateMood as updateMoodState, getMoodBehaviorModifier, applyMoodEvent, getMoodThreshold } from './mood-system';
+import { getBehaviorDuration, getTimeModifier, weightedRandomBehavior } from './behavior-system';
+import { logBehaviorEvent, logMoodEvent, type EventLogState } from './event-log';
 
 const ARRIVAL_THRESHOLD = 3;
 const CAT_SEPARATION_DISTANCE = 30;
@@ -9,29 +13,35 @@ const MOOD_EXCITED_DURATION = 400;
 const ACTION_SWITCH_MIN = 20;
 const ACTION_SWITCH_MAX = 60;
 const CHASE_TRIGGER_CHANCE = 0.1;
-const CHASE_REVERSE_CHANCE = 0.3;
 const GROOMING_CHANCE = 0.15;
 const PLAY_FIGHT_CHANCE = 0.2;
 
-const MOOD_SPEED_MULTIPLIER: Record<CatMood, number> = {
-  low: 0.6,
-  calm: 1.0,
-  excited: 1.4,
+const MOOD_SPEED_MULTIPLIER: Record<string, number> = {
+  depressed: 0.6,
+  calm: 0.8,
+  content: 1.0,
+  excited: 1.2,
+  euphoric: 1.4,
 };
 
-const MOOD_ACTION_SWITCH_MULTIPLIER: Record<CatMood, number> = {
-  low: 2.0,
-  calm: 1.0,
-  excited: 0.5,
+const MOOD_ACTION_SWITCH_MULTIPLIER: Record<string, number> = {
+  depressed: 2.0,
+  calm: 1.5,
+  content: 1.0,
+  excited: 0.7,
+  euphoric: 0.5,
 };
 
 export interface StateContext {
   shelters: Shelter[];
   catBeds: CatBed[];
   allCats: Cat[];
+  eventLog?: EventLogState;
+  gameTime?: { hour: number; minute: number; day: number };
 }
 
 export function updateCatState(cat: Cat, ctx: StateContext): void {
+  const previousAction = cat.action;
   cat.actionTimer++;
 
   updateMood(cat);
@@ -70,16 +80,17 @@ export function updateCatState(cat: Cat, ctx: StateContext): void {
       break;
   }
 
+  // 记录行为变化事件
+  if (cat.action !== previousAction && ctx.eventLog) {
+    logBehaviorEvent(ctx.eventLog, cat.id, cat.name, cat.action, ctx.gameTime);
+  }
+
   updateBlink(cat);
 }
 
 function updateMood(cat: Cat): void {
-  if (cat.moodTimer > 0) {
-    cat.moodTimer--;
-    if (cat.moodTimer <= 0) {
-      cat.mood = 'calm';
-    }
-  }
+  // 使用新的情绪系统
+  updateMoodState(cat.mood, cat.personality);
 }
 
 function updateBlink(cat: Cat): void {
@@ -96,31 +107,115 @@ function updateBlink(cat: Cat): void {
 }
 
 function getEffectiveSpeed(cat: Cat): number {
-  return cat.speed * MOOD_SPEED_MULTIPLIER[cat.mood];
+  const moodThreshold = getMoodThreshold(cat.mood.value);
+  return cat.speed * MOOD_SPEED_MULTIPLIER[moodThreshold];
 }
 
 function getActionSwitchInterval(cat: Cat): number {
   const base = ACTION_SWITCH_MIN + Math.floor(Math.random() * (ACTION_SWITCH_MAX - ACTION_SWITCH_MIN));
-  return Math.floor(base * MOOD_ACTION_SWITCH_MULTIPLIER[cat.mood]);
+  const moodThreshold = getMoodThreshold(cat.mood.value);
+  return Math.floor(base * MOOD_ACTION_SWITCH_MULTIPLIER[moodThreshold]);
 }
 
 function updateIdleState(cat: Cat, ctx: StateContext): void {
   cat.idleTimer--;
 
   if (cat.idleTimer <= 0) {
-    const roll = Math.random();
-    const chaseChance = cat.mood === 'excited' ? CHASE_TRIGGER_CHANCE * 3 : CHASE_TRIGGER_CHANCE;
+    // 使用加权随机选择下一个行为
+    const weights: Record<string, number> = {
+      idle: 20,
+      moving: 30 * calculateBehaviorWeight(cat.personality, 'moving'),
+      sleeping: 10 * calculateBehaviorWeight(cat.personality, 'sleeping'),
+      hiding: 5 * calculateBehaviorWeight(cat.personality, 'hiding'),
+      chasing: 10 * calculateBehaviorWeight(cat.personality, 'chasing'),
+      eating: 5 * calculateBehaviorWeight(cat.personality, 'eating'),
+      drinking: 3,
+      exploring: 8 * calculateBehaviorWeight(cat.personality, 'exploring'),
+      socializing: 5 * calculateBehaviorWeight(cat.personality, 'socializing'),
+      watching: 4 * calculateBehaviorWeight(cat.personality, 'watching'),
+      climbing: 4 * calculateBehaviorWeight(cat.personality, 'climbing'),
+      grooming: 5 * calculateBehaviorWeight(cat.personality, 'grooming'),
+    };
 
-    if (roll < chaseChance && ctx.allCats.length > 1) {
-      startChasing(cat, ctx);
-    } else if (roll < 0.30 && ctx.catBeds.length > 0) {
-      enterSleepingState(cat);
-    } else if (roll < 0.45 && ctx.shelters.length > 0) {
-      enterHidingState(cat);
-    } else {
-      enterMovingState(cat);
+    // 应用情绪修正
+    for (const behavior of Object.keys(weights)) {
+      weights[behavior] *= getMoodBehaviorModifier(cat.mood.value, behavior);
+    }
+
+    // 应用时间修正（需要从外部传入时间阶段）
+    // 暂时使用默认值，后续集成时间系统
+    const timePhase = 'day';
+    for (const behavior of Object.keys(weights)) {
+      weights[behavior] *= getTimeModifier(timePhase, behavior as CatActionState);
+    }
+
+    // 归一化并随机选择
+    const action = weightedRandomBehavior(weights);
+    
+    switch (action) {
+      case 'chasing':
+        if (ctx.allCats.length > 1) {
+          startChasing(cat, ctx);
+        } else {
+          enterMovingState(cat);
+        }
+        break;
+      case 'sleeping':
+        if (ctx.catBeds.length > 0) {
+          enterSleepingState(cat);
+        } else {
+          enterMovingState(cat);
+        }
+        break;
+      case 'hiding':
+        if (ctx.shelters.length > 0) {
+          enterHidingState(cat);
+        } else {
+          enterMovingState(cat);
+        }
+        break;
+      case 'eating':
+      case 'drinking':
+        // 暂时简化为移动到随机位置
+        enterMovingState(cat);
+        break;
+      case 'exploring':
+        enterMovingState(cat);
+        break;
+      case 'socializing':
+        if (ctx.allCats.length > 1) {
+          startChasing(cat, ctx);
+        } else {
+          enterMovingState(cat);
+        }
+        break;
+      case 'watching':
+      case 'climbing':
+      case 'grooming':
+        enterGroomingState(cat);
+        break;
+      case 'moving':
+      default:
+        enterMovingState(cat);
+        break;
     }
   }
+}
+
+/**
+ * 加权随机选择
+ */
+function weightedRandom(weights: Record<string, number>): string {
+  const entries = Object.entries(weights).filter(([_, w]) => w > 0);
+  const total = entries.reduce((sum, [_, w]) => sum + w, 0);
+  
+  let random = Math.random() * total;
+  for (const [action, weight] of entries) {
+    random -= weight;
+    if (random <= 0) return action;
+  }
+  
+  return 'idle';
 }
 
 function updateMovingState(cat: Cat, ctx: StateContext): void {
@@ -132,7 +227,8 @@ function updateMovingState(cat: Cat, ctx: StateContext): void {
     cat.x = cat.targetX;
     cat.y = cat.targetY;
     cat.action = 'idle';
-    cat.idleTimer = 60 + Math.floor(Math.random() * 180);
+    const baseIdle = 60 + Math.floor(Math.random() * 180);
+    cat.idleTimer = Math.floor(baseIdle * getIdleDurationModifier(cat.personality));
     cat.actionTimer = 0;
     return;
   }
@@ -183,7 +279,7 @@ function updateChasingState(cat: Cat, ctx: StateContext): void {
       enterGroomingState(cat);
       return;
     }
-    if (Math.random() < CHASE_REVERSE_CHANCE) {
+    if (Math.random() < getChaseReverseChance(cat.personality)) {
       reverseChase(cat, target);
       return;
     }
@@ -258,15 +354,15 @@ function startChasing(cat: Cat, ctx: StateContext): void {
 
   const target = otherCats[Math.floor(Math.random() * otherCats.length)];
 
-  cat.mood = 'excited';
-  cat.moodTimer = MOOD_EXCITED_DURATION;
+  // 应用情绪事件
+  applyMoodEvent(cat.mood, 'chase_start', cat.personality, Date.now());
+  applyMoodEvent(target.mood, 'flee', target.personality, Date.now());
+
   cat.chaseTargetId = target.id;
   cat.actionSwitchTimer = getActionSwitchInterval(cat);
   cat.action = 'chasing';
   cat.actionTimer = 0;
 
-  target.mood = 'excited';
-  target.moodTimer = MOOD_EXCITED_DURATION;
   target.chaseTargetId = cat.id;
   target.action = 'fleeing';
   target.actionTimer = 0;
@@ -274,7 +370,8 @@ function startChasing(cat: Cat, ctx: StateContext): void {
 }
 
 function switchExcitedAction(cat: Cat, ctx: StateContext): void {
-  if (cat.mood !== 'excited') return;
+  const moodThreshold = getMoodThreshold(cat.mood.value);
+  if (moodThreshold !== 'excited' && moodThreshold !== 'euphoric') return;
 
   cat.actionSwitchTimer = getActionSwitchInterval(cat);
 
@@ -301,7 +398,7 @@ function switchExcitedAction(cat: Cat, ctx: StateContext): void {
       enterPlayFightingState(cat, target);
     } else if (roll < PLAY_FIGHT_CHANCE + GROOMING_CHANCE) {
       enterGroomingState(cat);
-    } else if (roll < PLAY_FIGHT_CHANCE + GROOMING_CHANCE + CHASE_REVERSE_CHANCE) {
+    } else if (roll < PLAY_FIGHT_CHANCE + GROOMING_CHANCE + getChaseReverseChance(cat.personality)) {
       reverseChase(cat, target);
     }
   }

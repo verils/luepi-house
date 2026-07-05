@@ -3,6 +3,9 @@
   import { updateCatState } from './lib/game';
   import type { GameRenderer, Camera, StateContext } from './lib/game';
   import { HOUSE_SIZE, WALL_THICKNESS } from './lib/game';
+  import { updateTime, cycleTimeSpeed, formatGameTime } from './lib/game/time-system';
+  import { updateWeather, getWeatherName } from './lib/game/weather-system';
+  import { logSystemEvent } from './lib/game/event-log';
   import {
     gameState,
     selectedCat,
@@ -70,10 +73,31 @@
       fpsLastTime = now;
     }
 
+    // 更新时间系统
+    updateTime(state.time);
+    
+    // 更新天气系统
+    const weatherChanged = updateWeather(state.weather);
+    if (weatherChanged && state.eventLog) {
+      logSystemEvent(state.eventLog, 'weather_change', `天气变为${getWeatherName(state.weather.current)}`, {
+        weather: state.weather.current,
+      }, {
+        hour: state.time.hour,
+        minute: state.time.minute,
+        day: state.time.day,
+      });
+    }
+
     const stateCtx: StateContext = {
       shelters: state.shelters,
       catBeds: state.catBeds,
       allCats: state.cats,
+      eventLog: state.eventLog,
+      gameTime: {
+        hour: state.time.hour,
+        minute: state.time.minute,
+        day: state.time.day,
+      },
     };
 
     for (const cat of state.cats) {
@@ -129,11 +153,20 @@
   function handleCatDeselect() {
     deselectCat();
   }
+
+  function handleSpeedChange() {
+    let state: any;
+    const unsub = gameState.subscribe((s) => (state = s));
+    unsub();
+    if (!state) return;
+    
+    state.time.speed = cycleTimeSpeed(state.time.speed);
+    gameState.set(state);
+  }
 </script>
 
 <div class="game-container">
   <GameCanvas
-    {debugMode}
     bind:renderer={gameRenderer}
     oncatclick={handleCatClick}
     oncatdeselect={handleCatDeselect}
@@ -145,6 +178,15 @@
     {#if $showCatInfo && $selectedCat}
       <InfoPanel cat={$selectedCat} onclose={handleCatDeselect} />
     {/if}
+
+    <div class="time-panel">
+      <div class="time-display">
+        {formatGameTime($gameState?.time?.hour ?? 8, $gameState?.time?.minute ?? 0)}
+      </div>
+      <button class="speed-btn" onclick={handleSpeedChange}>
+        {$gameState?.time?.speed ?? 1}x
+      </button>
+    </div>
 
     <div class="fps-counter">
       FPS: {$currentFPS}
@@ -210,6 +252,41 @@
     background: rgba(255, 255, 255, 0.7);
     padding: 4px 8px;
     border-radius: 4px;
+  }
+
+  .time-panel {
+    position: absolute;
+    top: 20px;
+    right: 120px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 8px 12px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .time-display {
+    font-family: monospace;
+    font-size: 18px;
+    font-weight: bold;
+    color: #333;
+  }
+
+  .speed-btn {
+    padding: 4px 8px;
+    background: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: bold;
+  }
+
+  .speed-btn:hover {
+    background: #45a049;
   }
 
   .controls {
