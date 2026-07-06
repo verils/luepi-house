@@ -316,8 +316,8 @@ function updateFleeingState(cat: Cat, ctx: StateContext): void {
   if (distance > 0) {
     const fleeX = cat.x + (dx / distance) * getEffectiveSpeed(cat) * 1.2;
     const fleeY = cat.y + (dy / distance) * getEffectiveSpeed(cat) * 1.2;
-    cat.targetX = clampToHouseX(fleeX, cat.collisionRadius);
-    cat.targetY = clampToHouseY(fleeY, cat.collisionRadius);
+    cat.targetX = clampToHouseX(fleeX, cat);
+    cat.targetY = clampToHouseY(fleeY, cat);
     moveToward(cat, cat.targetX, cat.targetY, getEffectiveSpeed(cat) * 1.2);
   }
 }
@@ -472,22 +472,24 @@ function moveToward(cat: Cat, targetX: number, targetY: number, speed: number): 
   let newX = cat.x + dirX * speed;
   let newY = cat.y + dirY * speed;
 
-  newX = clampToHouseX(newX, cat.collisionRadius);
-  newY = clampToHouseY(newY, cat.collisionRadius);
+  newX = clampToHouseX(newX, cat);
+  newY = clampToHouseY(newY, cat);
 
   cat.x = newX;
   cat.y = newY;
 }
 
-function clampToHouseX(x: number, radius: number): number {
-  const minX = WALL_THICKNESS + radius;
-  const maxX = WALL_THICKNESS + HOUSE_SIZE - radius;
+function clampToHouseX(x: number, cat: Cat): number {
+  const halfWidth = cat.visualWidth / 2;
+  const minX = WALL_THICKNESS + cat.collisionRadius - halfWidth;
+  const maxX = WALL_THICKNESS + HOUSE_SIZE - cat.collisionRadius - halfWidth;
   return Math.max(minX, Math.min(x, maxX));
 }
 
-function clampToHouseY(y: number, radius: number): number {
-  const minY = WALL_THICKNESS + radius;
-  const maxY = WALL_THICKNESS + HOUSE_SIZE - radius;
+function clampToHouseY(y: number, cat: Cat): number {
+  const halfHeight = cat.visualHeight / 2;
+  const minY = WALL_THICKNESS + cat.collisionRadius - halfHeight;
+  const maxY = WALL_THICKNESS + HOUSE_SIZE - cat.collisionRadius - halfHeight;
   return Math.max(minY, Math.min(y, maxY));
 }
 
@@ -516,8 +518,8 @@ function resolveCatCollision(
       resultX += pushX;
       resultY += pushY;
 
-      resultX = clampToHouseX(resultX, cat.collisionRadius);
-      resultY = clampToHouseY(resultY, cat.collisionRadius);
+      resultX = clampToHouseX(resultX, cat);
+      resultY = clampToHouseY(resultY, cat);
     }
   }
 
