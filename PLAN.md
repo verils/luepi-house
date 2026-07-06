@@ -2,9 +2,9 @@
 
 ## 📊 当前进度概览
 
-**最后更新**: 2026-07-05
-**当前阶段**: 新系统 ✅ 已完成 / 任务 5 待开始
-**下一阶段**: 任务 5 - 测试与优化
+**最后更新**: 2026-07-06
+**当前阶段**: 任务 5 ✅ 已完成 / 任务 6 待开始
+**下一阶段**: 任务 6 - 状态机解耦
 
 ---
 
@@ -24,7 +24,8 @@
 2. **动态实体（核心）** - 创造项目的灵魂：猫。实现其视觉形象、数据结构与基础运动
 3. **静态世界** - 为猫创造可以行走和互动的房屋环境
 4. **规则与交互** - 实现行为逻辑、边界限制与状态管理
-5. **视角与呈现** - 优化观看体验，完善渲染细节
+5. **测试与优化** - 修复 Bug、补充测试、性能优化
+6. **独立 AI 架构** - 状态机解耦，事件驱动的意图系统
 
 ## 短期开发目标
 
@@ -306,42 +307,102 @@
 
 ---
 
-### 任务 5: 测试与优化 🔄 待开始
+### 任务 5: 测试与优化 ✅ 已完成
 
 **目标**: 测试基础功能，优化性能，修复 bug。
 
-**性能优化重点**: Canvas 渲染性能调优
-- **离屏 Canvas**: 预渲染静态元素（地图、墙壁）
-- **渲染优化**: 减少不必要的重绘，使用 requestAnimationFrame
-- **内存管理**: 确保无内存泄漏，及时清理事件监听器
+**实现日期**: 2026-07-06
 
-**任务清单**:
-- [ ] 功能测试
-  - 测试猫的四种行为状态
-  - 测试碰撞检测是否正常
-  - 测试地图元素是否正确显示
-- [ ] 性能优化
-  - 使用 Chrome DevTools Performance 面板分析
-  - 优化渲染调用（减少不必要的绘制）
-  - 确保 FPS 稳定在 60
-  - 监控内存使用（无明显泄漏）
-- [ ] 边界情况测试
-  - 猫卡在墙角的情况
-  - 两只猫挤压在一起
-  - 多个猫同时移动
-- [ ] Bug 修复
-  - 修复发现的任何问题
-  - 添加错误处理和边界检查
-- [ ] 代码清理
-  - 删除调试代码和 console.log
-  - 添加必要的注释
-  - 格式化代码（Prettier）
+#### Bug 修复（9 个）
+- [x] `resolveCatCollision` 激活调用 + 零距离推离
+- [x] 逃跑猫距离=0 时随机方向逃跑
+- [x] `switchExcitedAction` 添加默认行为
+- [x] 睡觉/躲避移动到猫窝/庇护所位置
+- [x] `startChasing` 过滤不可追逐状态
+- [x] 移动目标避开庇护所/床内部
+- [x] 边界公式修正（小 collisionRadius）
+
+#### 单元测试（+86 个用例）
+- [x] mood-system、time-system、behavior-system、event-log、personality、weather-system
+
+#### 性能优化
+- [x] darkenPattern 缓存
+- [x] 静态元素离屏 Canvas
+- [x] 移除 `ctx.rotate(cat.rotation)`（猫头朝上禁止旋转）
+
+#### ESLint 修复
+- [x] 清理未使用变量和函数
+- [x] App.svelte 中 `any` → 正确类型
+
+#### 行为参数调优
+- [x] 大幅降低交互频率（chasing/socializing 权重降低）
+- [x] 增加独处时间（idle 计时器延长）
+- [x] 碰撞距离 30px → 16px
+- [x] 追逐速度 1.3x → 1.05x
 
 **验收标准**:
-- ⬜ 所有基础功能正常运行
-- ⬜ FPS 稳定在 60，无明显卡顿
-- ⬜ 无明显 bug 或崩溃
-- ⬜ 代码整洁，有适当注释
+- ✅ 94 个测试全部通过
+- ✅ ESLint 零错误
+- ✅ TypeScript 类型检查零错误
+- ✅ 猫不再互相穿过、不再磁铁式粘连
+
+---
+
+### 任务 6: 状态机解耦 — 独立 AI 架构 🔄 待开始
+
+**目标**: 将两只猫的状态机从"共享上下文、直接互改"改为"独立 AI、事件驱动"。每只猫是独立的 agent，只修改自己的状态，通过事件系统感知对方。
+
+**设计原则**: 两只猫，两个 AI，思维和意图独立，受外界事件影响。
+
+#### 当前耦合问题
+
+| 函数 | 问题 |
+|------|------|
+| `startChasing(cat, ctx)` | 直接设置 `target.action = 'fleeing'` |
+| `reverseChase(cat, target)` | 同时设置两只猫的 action |
+| `enterPlayFightingState(cat, target)` | 同时设置两只猫的 action 和 target |
+| `updatePlayFightingState` | 结束时重置 partner 的状态 |
+| `resolveCatCollision` | 遍历 allCats 做推离 |
+| App.svelte 游戏循环 | 顺序遍历，后面的猫看到被前面猫改过的状态 |
+
+#### 设计方案：意图事件系统
+
+**核心思路**:
+1. 每只猫只修改自己 — `updateCatState` 不允许写入 `other.action` 等
+2. 事件总线 — 猫发出意图事件（"想追逐"、"想打闹"），由调度层统一处理
+3. 感知而非操控 — 猫通过只读方式感知对方（位置、状态），但不能修改
+
+**新增类型**:
+```ts
+type CatIntent =
+  | { type: 'want_chase'; targetId: string }
+  | { type: 'want_play_fight'; targetId: string }
+  | { type: 'want_reverse_chase'; targetId: string };
+```
+
+**调度流程**:
+```
+1. 猫 A 更新 → 返回 [want_chase target=B]
+2. 猫 B 更新 → 返回 []
+3. resolveIntents([want_chase]) → 检查 B 是否空闲 → 生效
+```
+
+#### 任务清单
+
+- [ ] 引入 `CatIntent` 类型（`types.ts`）
+- [ ] `updateCatState` 返回 `CatIntent[]`
+- [ ] `startChasing` / `reverseChase` / `enterPlayFightingState` 改为返回 intent
+- [ ] 游戏循环：先独立更新，再 `resolveIntents()` 统一处理
+- [ ] `StateContext.allCats` 改为 `readonly Cat[]`
+- [ ] 碰撞解析独立化（游戏循环中单独调用）
+- [ ] 补充测试：意图收集、意图解析、独立更新
+
+**验收标准**:
+- ⬜ 每只猫只修改自己的状态
+- ⬜ `updateCatState` 不直接写入 other 的字段
+- ⬜ 追逐/打闹通过意图系统协调
+- ⬜ 猫大部分时间独立行动
+- ⬜ 现有测试全部通过
 
 ---
 
