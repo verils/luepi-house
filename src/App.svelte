@@ -3,9 +3,9 @@
   import { updateCatState } from './lib/game';
   import type { GameRenderer, Camera, StateContext } from './lib/game';
   import { HOUSE_SIZE, WALL_THICKNESS } from './lib/game';
-  import { updateTime, cycleTimeSpeed, formatGameTime } from './lib/game/time-system';
-  import { updateWeather, getWeatherName } from './lib/game/weather-system';
-  import { logSystemEvent } from './lib/game/event-log';
+  import { updateTime, cycleTimeSpeed, formatGameTime } from './lib/game';
+  import { updateWeather, getWeatherName } from './lib/game';
+  import { logSystemEvent } from './lib/game';
   import {
     gameState,
     selectedCat,
@@ -173,8 +173,6 @@
   />
 
   <div class="ui-overlay">
-    <h1 class="title">LuePi House</h1>
-
     {#if $showCatInfo && $selectedCat}
       <InfoPanel cat={$selectedCat} onclose={handleCatDeselect} />
     {/if}
@@ -231,15 +229,6 @@
     justify-content: space-between;
     padding: 20px;
     box-sizing: border-box;
-  }
-
-  .title {
-    margin: 0;
-    color: #333;
-    font-size: 24px;
-    text-shadow: 2px 2px 4px rgba(255, 255, 255, 0.8);
-    pointer-events: auto;
-    align-self: flex-start;
   }
 
   .fps-counter {
@@ -342,7 +331,6 @@
   }
 
   @media (max-width: 768px) {
-    .title { font-size: 18px; }
     .control-btn { padding: 8px 16px; min-width: 80px; font-size: 12px; }
     .instructions { font-size: 11px; padding: 6px 12px; }
   }
