@@ -187,7 +187,7 @@ export function logMoodEvent(
   newThreshold: string,
   gameTime?: { hour: number; minute: number; day: number }
 ): void {
-  if (oldThreshold === newThreshold) return;
+  if (oldThreshold === newThreshold) {return;}
   
   const thresholdNames: Record<string, string> = {
     depressed: '沮丧',

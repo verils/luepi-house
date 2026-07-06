@@ -113,7 +113,7 @@ export function weightedRandomBehavior(weights: Record<string, number>): string 
   let random = Math.random() * total;
   for (const [action, weight] of entries) {
     random -= weight;
-    if (random <= 0) return action;
+    if (random <= 0) {return action;}
   }
   
   return 'idle';

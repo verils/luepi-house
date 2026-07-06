@@ -36,9 +36,9 @@ describe('Cat Rendering', () => {
     expect(luelue?.color).not.toBe(pipi?.color);
     
     // Verify they have different collision radii (Pipi is slimmer)
-    expect(luelue?.collisionRadius).toBeGreaterThan(pipi?.collisionRadius!);
-    
+    expect(luelue?.collisionRadius).toBeGreaterThan(pipi?.collisionRadius ?? 0);
+
     // Verify they have different speeds (Luelue is faster)
-    expect(luelue?.speed).toBeGreaterThan(pipi?.speed!);
+    expect(luelue?.speed).toBeGreaterThan(pipi?.speed ?? 0);
   });
 });

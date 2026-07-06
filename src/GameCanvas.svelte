@@ -45,7 +45,9 @@
   }
 
   onMount(() => {
-    if (!canvas) return;
+    if (!canvas) {
+      return;
+    }
 
     resizeCanvas();
 

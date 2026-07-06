@@ -288,8 +288,8 @@ export abstract class CatRenderer {
       const angle = (i * 4 * Math.PI) / 5 - Math.PI / 2;
       const px = x + Math.cos(angle) * size;
       const py = y + Math.sin(angle) * size;
-      if (i === 0) this.ctx.moveTo(px, py);
-      else this.ctx.lineTo(px, py);
+      if (i === 0) {this.ctx.moveTo(px, py);}
+      else {this.ctx.lineTo(px, py);}
     }
     this.ctx.closePath();
     this.ctx.fill();

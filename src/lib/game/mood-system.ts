@@ -78,7 +78,7 @@ export function applyMoodEvent(
   currentTime: number
 ): void {
   const baseModifier = MOOD_EVENTS[eventType] || 0;
-  if (baseModifier === 0) return;
+  if (baseModifier === 0) {return;}
   
   const personalityFactor = getPersonalityMoodFactor(personality, eventType);
   const finalModifier = baseModifier * personalityFactor;
@@ -124,10 +124,10 @@ function getPersonalityMoodFactor(personality: CatPersonality, eventType: string
  * 获取当前情绪阈值
  */
 export function getMoodThreshold(value: number): MoodThreshold {
-  if (value < 20) return 'depressed';
-  if (value < 40) return 'calm';
-  if (value < 60) return 'content';
-  if (value < 80) return 'excited';
+  if (value < 20) {return 'depressed';}
+  if (value < 40) {return 'calm';}
+  if (value < 60) {return 'content';}
+  if (value < 80) {return 'excited';}
   return 'euphoric';
 }
 
@@ -139,26 +139,26 @@ export function getMoodBehaviorModifier(moodValue: number, behavior: string): nu
   
   switch (threshold) {
     case 'euphoric':
-      if (behavior === 'chasing' || behavior === 'socializing') return 1.3;
-      if (behavior === 'sleeping') return 0.5;
+      if (behavior === 'chasing' || behavior === 'socializing') {return 1.3;}
+      if (behavior === 'sleeping') {return 0.5;}
       return 1.0;
     
     case 'excited':
-      if (behavior === 'chasing' || behavior === 'socializing') return 1.15;
+      if (behavior === 'chasing' || behavior === 'socializing') {return 1.15;}
       return 1.0;
     
     case 'content':
       return 1.0;
     
     case 'calm':
-      if (behavior === 'sleeping') return 1.2;
-      if (behavior === 'hiding') return 1.1;
+      if (behavior === 'sleeping') {return 1.2;}
+      if (behavior === 'hiding') {return 1.1;}
       return 1.0;
     
     case 'depressed':
-      if (behavior === 'sleeping') return 1.5;
-      if (behavior === 'hiding') return 1.3;
-      if (behavior === 'moving') return 0.6;
+      if (behavior === 'sleeping') {return 1.5;}
+      if (behavior === 'hiding') {return 1.3;}
+      if (behavior === 'moving') {return 0.6;}
       return 1.0;
   }
 }

@@ -217,7 +217,7 @@ function weightedRandom(weights: Record<string, number>): string {
   let random = Math.random() * total;
   for (const [action, weight] of entries) {
     random -= weight;
-    if (random <= 0) return action;
+    if (random <= 0) {return action;}
   }
 
   return 'idle';
@@ -355,7 +355,7 @@ function updatePlayFightingState(cat: Cat, ctx: StateContext): void {
 
 function startChasing(cat: Cat, ctx: StateContext): void {
   const otherCats = ctx.allCats.filter((c) => c.id !== cat.id);
-  if (otherCats.length === 0) return;
+  if (otherCats.length === 0) {return;}
 
   const target = otherCats[Math.floor(Math.random() * otherCats.length)];
 
@@ -376,7 +376,7 @@ function startChasing(cat: Cat, ctx: StateContext): void {
 
 function switchExcitedAction(cat: Cat, ctx: StateContext): void {
   const moodThreshold = getMoodThreshold(cat.mood.value);
-  if (moodThreshold !== 'excited' && moodThreshold !== 'euphoric') return;
+  if (moodThreshold !== 'excited' && moodThreshold !== 'euphoric') {return;}
 
   cat.actionSwitchTimer = getActionSwitchInterval(cat);
 
@@ -508,7 +508,7 @@ function resolveCatCollision(
   let resultY = newY;
 
   for (const other of allCats) {
-    if (other.id === cat.id) continue;
+    if (other.id === cat.id) {continue;}
 
     const dx = resultX - other.x;
     const dy = resultY - other.y;

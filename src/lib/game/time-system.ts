@@ -74,9 +74,9 @@ export function updateTime(time: TimeState): TimePhase | null {
  * 获取当前时间阶段
  */
 export function getCurrentPhase(hour: number): TimePhase {
-  if (hour >= 5 && hour < 7) return 'dawn';
-  if (hour >= 7 && hour < 17) return 'day';
-  if (hour >= 17 && hour < 19) return 'dusk';
+  if (hour >= 5 && hour < 7) {return 'dawn';}
+  if (hour >= 7 && hour < 17) {return 'day';}
+  if (hour >= 17 && hour < 19) {return 'dusk';}
   return 'night';
 }
 
