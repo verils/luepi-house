@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { updateCatState } from './lib/game';
-  import type { GameRenderer, Camera, StateContext } from './lib/game';
+  import type { GameRenderer, Camera, StateContext, GameState, Cat } from './lib/game';
   import { HOUSE_SIZE, WALL_THICKNESS } from './lib/game';
   import { updateTime, cycleTimeSpeed, formatGameTime } from './lib/game';
   import { updateWeather, getWeatherName } from './lib/game';
@@ -56,7 +56,7 @@
   }
 
   function gameLoop() {
-    let state: any;
+    let state = null as GameState | null;
     const unsub = gameState.subscribe((s) => (state = s));
 
     if (!state || !gameRenderer) {
@@ -112,7 +112,7 @@
 
   function resetCamera() {
     if (!camera || !gameRenderer) return;
-    let state: any;
+    let state: GameState | null = null;
     const unsub = gameState.subscribe((s) => (state = s));
     unsub();
     if (!state) return;
@@ -126,7 +126,7 @@
 
   function zoomIn() {
     if (!camera || !gameRenderer) return;
-    let state: any;
+    let state: GameState | null = null;
     const unsub = gameState.subscribe((s) => (state = s));
     unsub();
     if (!state) return;
@@ -137,7 +137,7 @@
 
   function zoomOut() {
     if (!camera || !gameRenderer) return;
-    let state: any;
+    let state: GameState | null = null;
     const unsub = gameState.subscribe((s) => (state = s));
     unsub();
     if (!state) return;
@@ -146,7 +146,7 @@
     gameRenderer.render(state);
   }
 
-  function handleCatClick(cat: any) {
+  function handleCatClick(cat: Cat | null) {
     selectCat(cat);
   }
 
@@ -155,11 +155,11 @@
   }
 
   function handleSpeedChange() {
-    let state: any;
+    let state = null as GameState | null;
     const unsub = gameState.subscribe((s) => (state = s));
     unsub();
     if (!state) return;
-    
+
     state.time.speed = cycleTimeSpeed(state.time.speed);
     gameState.set(state);
   }

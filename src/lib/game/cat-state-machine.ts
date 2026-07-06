@@ -13,11 +13,8 @@ import { type EventLogState, logBehaviorEvent } from './event-log';
 const ARRIVAL_THRESHOLD = 3;
 const CAT_SEPARATION_DISTANCE = 30;
 
-const MOOD_LOW_DURATION = 300;
-const MOOD_EXCITED_DURATION = 400;
 const ACTION_SWITCH_MIN = 20;
 const ACTION_SWITCH_MAX = 60;
-const CHASE_TRIGGER_CHANCE = 0.1;
 const GROOMING_CHANCE = 0.15;
 const PLAY_FIGHT_CHANCE = 0.2;
 
@@ -91,6 +88,11 @@ export function updateCatState(cat: Cat, ctx: StateContext): void {
   }
 
   updateBlink(cat);
+
+  // 应用猫之间的碰撞解析
+  const resolved = resolveCatCollision(cat, cat.x, cat.y, ctx.allCats);
+  cat.x = resolved.x;
+  cat.y = resolved.y;
 }
 
 function updateMood(cat: Cat): void {
@@ -167,14 +169,14 @@ function updateIdleState(cat: Cat, ctx: StateContext): void {
         break;
       case 'sleeping':
         if (ctx.catBeds.length > 0) {
-          enterSleepingState(cat);
+          enterSleepingState(cat, ctx);
         } else {
           enterMovingState(cat);
         }
         break;
       case 'hiding':
         if (ctx.shelters.length > 0) {
-          enterHidingState(cat);
+          enterHidingState(cat, ctx);
         } else {
           enterMovingState(cat);
         }
@@ -205,22 +207,6 @@ function updateIdleState(cat: Cat, ctx: StateContext): void {
         break;
     }
   }
-}
-
-/**
- * 加权随机选择
- */
-function weightedRandom(weights: Record<string, number>): string {
-  const entries = Object.entries(weights).filter(([_, w]) => w > 0);
-  const total = entries.reduce((sum, [_, w]) => sum + w, 0);
-
-  let random = Math.random() * total;
-  for (const [action, weight] of entries) {
-    random -= weight;
-    if (random <= 0) {return action;}
-  }
-
-  return 'idle';
 }
 
 function updateMovingState(cat: Cat, ctx: StateContext): void {
@@ -323,8 +309,14 @@ function updateFleeingState(cat: Cat, ctx: StateContext): void {
     const fleeY = cat.y + (dy / distance) * getEffectiveSpeed(cat) * 1.2;
     cat.targetX = clampToHouseX(fleeX, cat);
     cat.targetY = clampToHouseY(fleeY, cat);
-    moveToward(cat, cat.targetX, cat.targetY, getEffectiveSpeed(cat) * 1.2);
+  } else {
+    // 零距离：随机方向逃跑
+    const angle = Math.random() * Math.PI * 2;
+    const speed = getEffectiveSpeed(cat) * 1.2;
+    cat.targetX = clampToHouseX(cat.x + Math.cos(angle) * speed, cat);
+    cat.targetY = clampToHouseY(cat.y + Math.sin(angle) * speed, cat);
   }
+  moveToward(cat, cat.targetX, cat.targetY, getEffectiveSpeed(cat) * 1.2);
 }
 
 function updateGroomingState(cat: Cat, ctx: StateContext): void {
@@ -357,7 +349,13 @@ function startChasing(cat: Cat, ctx: StateContext): void {
   const otherCats = ctx.allCats.filter((c) => c.id !== cat.id);
   if (otherCats.length === 0) {return;}
 
-  const target = otherCats[Math.floor(Math.random() * otherCats.length)];
+  // 过滤掉不可追逐的状态
+  const chaseable = otherCats.filter(c =>
+    c.action !== 'sleeping' && c.action !== 'hiding' && c.action !== 'playFighting'
+  );
+  if (chaseable.length === 0) {return;}
+
+  const target = chaseable[Math.floor(Math.random() * chaseable.length)];
 
   // 应用情绪事件
   applyMoodEvent(cat.mood, 'chase_start', cat.personality, Date.now());
@@ -405,7 +403,11 @@ function switchExcitedAction(cat: Cat, ctx: StateContext): void {
       enterGroomingState(cat);
     } else if (roll < PLAY_FIGHT_CHANCE + GROOMING_CHANCE + getChaseReverseChance(cat.personality)) {
       reverseChase(cat, target);
+    } else {
+      cat.action = 'chasing';
     }
+  } else {
+    cat.action = 'chasing';
   }
 }
 
@@ -438,24 +440,64 @@ function enterGroomingState(cat: Cat): void {
   cat.targetY = cat.y;
 }
 
-function enterMovingState(cat: Cat): void {
+function enterMovingState(cat: Cat, ctx?: StateContext): void {
   const margin = cat.visualWidth;
-  cat.targetX = WALL_THICKNESS + margin + Math.random() * (HOUSE_SIZE - margin * 2);
-  cat.targetY = WALL_THICKNESS + margin + Math.random() * (HOUSE_SIZE - margin * 2);
+  let attempts = 0;
+  let tx: number, ty: number;
+  do {
+    tx = WALL_THICKNESS + margin + Math.random() * (HOUSE_SIZE - margin * 2);
+    ty = WALL_THICKNESS + margin + Math.random() * (HOUSE_SIZE - margin * 2);
+    attempts++;
+  } while (ctx && isInsideObject(tx, ty, ctx) && attempts < 5);
+
+  cat.targetX = tx;
+  cat.targetY = ty;
   cat.action = 'moving';
   cat.actionTimer = 0;
 }
 
-function enterSleepingState(cat: Cat): void {
-  cat.targetX = cat.x;
-  cat.targetY = cat.y;
+function isInsideObject(x: number, y: number, ctx: StateContext): boolean {
+  for (const s of ctx.shelters) {
+    if (x >= s.x && x <= s.x + s.width && y >= s.y && y <= s.y + s.height) {return true;}
+  }
+  for (const b of ctx.catBeds) {
+    if (x >= b.x && x <= b.x + b.width && y >= b.y && y <= b.y + b.height) {return true;}
+  }
+  return false;
+}
+
+function enterSleepingState(cat: Cat, ctx: StateContext): void {
+  if (ctx.catBeds.length > 0) {
+    const bed = ctx.catBeds[0];
+    cat.targetX = bed.x + bed.width / 2;
+    cat.targetY = bed.y + bed.height / 2;
+  } else {
+    cat.targetX = cat.x;
+    cat.targetY = cat.y;
+  }
   cat.action = 'sleeping';
   cat.actionTimer = 0;
 }
 
-function enterHidingState(cat: Cat): void {
-  cat.targetX = cat.x;
-  cat.targetY = cat.y;
+function enterHidingState(cat: Cat, ctx: StateContext): void {
+  if (ctx.shelters.length > 0) {
+    let nearest = ctx.shelters[0];
+    let minDist = Infinity;
+    for (const s of ctx.shelters) {
+      const dx = (s.x + s.width / 2) - cat.x;
+      const dy = (s.y + s.height / 2) - cat.y;
+      const d = dx * dx + dy * dy;
+      if (d < minDist) {
+        minDist = d;
+        nearest = s;
+      }
+    }
+    cat.targetX = nearest.x + nearest.width / 2;
+    cat.targetY = nearest.y + nearest.height / 2;
+  } else {
+    cat.targetX = cat.x;
+    cat.targetY = cat.y;
+  }
   cat.action = 'hiding';
   cat.actionTimer = 0;
 }
@@ -486,15 +528,17 @@ function moveToward(cat: Cat, targetX: number, targetY: number, speed: number): 
 
 function clampToHouseX(x: number, cat: Cat): number {
   const halfWidth = cat.visualWidth / 2;
-  const minX = WALL_THICKNESS + cat.collisionRadius - halfWidth;
-  const maxX = WALL_THICKNESS + HOUSE_SIZE - cat.collisionRadius - halfWidth;
+  const clearance = Math.max(cat.collisionRadius, halfWidth);
+  const minX = WALL_THICKNESS + clearance - halfWidth;
+  const maxX = WALL_THICKNESS + HOUSE_SIZE - clearance - halfWidth;
   return Math.max(minX, Math.min(x, maxX));
 }
 
 function clampToHouseY(y: number, cat: Cat): number {
   const halfHeight = cat.visualHeight / 2;
-  const minY = WALL_THICKNESS + cat.collisionRadius - halfHeight;
-  const maxY = WALL_THICKNESS + HOUSE_SIZE - cat.collisionRadius - halfHeight;
+  const clearance = Math.max(cat.collisionRadius, halfHeight);
+  const minY = WALL_THICKNESS + clearance - halfHeight;
+  const maxY = WALL_THICKNESS + HOUSE_SIZE - clearance - halfHeight;
   return Math.max(minY, Math.min(y, maxY));
 }
 
@@ -515,10 +559,18 @@ function resolveCatCollision(
     const distance = Math.sqrt(dx * dx + dy * dy);
     const minDist = CAT_SEPARATION_DISTANCE;
 
-    if (distance < minDist && distance > 0) {
-      const overlap = minDist - distance;
-      const pushX = (dx / distance) * overlap * 0.5;
-      const pushY = (dy / distance) * overlap * 0.5;
+    if (distance < minDist) {
+      let pushX: number;
+      let pushY: number;
+      if (distance > 0) {
+        const overlap = minDist - distance;
+        pushX = (dx / distance) * overlap * 0.5;
+        pushY = (dy / distance) * overlap * 0.5;
+      } else {
+        const angle = Math.random() * Math.PI * 2;
+        pushX = Math.cos(angle) * minDist * 0.5;
+        pushY = Math.sin(angle) * minDist * 0.5;
+      }
 
       resultX += pushX;
       resultY += pushY;
