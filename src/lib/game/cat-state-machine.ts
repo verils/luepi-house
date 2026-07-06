@@ -1,9 +1,14 @@
-import type { Cat, CatActionState, CatMood, Shelter, CatBed } from './types';
-import { WALL_THICKNESS, HOUSE_SIZE } from './types';
+import type { Cat, CatActionState, CatBed, Shelter } from './types';
+import { HOUSE_SIZE, WALL_THICKNESS } from './types';
 import { calculateBehaviorWeight, getChaseReverseChance, getIdleDurationModifier } from './personality';
-import { updateMood as updateMoodState, getMoodBehaviorModifier, applyMoodEvent, getMoodThreshold } from './mood-system';
-import { getBehaviorDuration, getTimeModifier, weightedRandomBehavior } from './behavior-system';
-import { logBehaviorEvent, logMoodEvent, type EventLogState } from './event-log';
+import {
+  applyMoodEvent,
+  getMoodBehaviorModifier,
+  getMoodThreshold,
+  updateMood as updateMoodState
+} from './mood-system';
+import { getTimeModifier, weightedRandomBehavior } from './behavior-system';
+import { type EventLogState, logBehaviorEvent } from './event-log';
 
 const ARRIVAL_THRESHOLD = 3;
 const CAT_SEPARATION_DISTANCE = 30;
@@ -208,13 +213,13 @@ function updateIdleState(cat: Cat, ctx: StateContext): void {
 function weightedRandom(weights: Record<string, number>): string {
   const entries = Object.entries(weights).filter(([_, w]) => w > 0);
   const total = entries.reduce((sum, [_, w]) => sum + w, 0);
-  
+
   let random = Math.random() * total;
   for (const [action, weight] of entries) {
     random -= weight;
     if (random <= 0) return action;
   }
-  
+
   return 'idle';
 }
 
