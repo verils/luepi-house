@@ -11,7 +11,7 @@ import { getTimeModifier, weightedRandomBehavior } from './behavior-system';
 import { type EventLogState, logBehaviorEvent } from './event-log';
 
 const ARRIVAL_THRESHOLD = 3;
-const CAT_SEPARATION_DISTANCE = 30;
+const CAT_SEPARATION_DISTANCE = 16;
 
 const ACTION_SWITCH_MIN = 20;
 const ACTION_SWITCH_MAX = 60;
@@ -89,10 +89,12 @@ export function updateCatState(cat: Cat, ctx: StateContext): void {
 
   updateBlink(cat);
 
-  // 应用猫之间的碰撞解析
-  const resolved = resolveCatCollision(cat, cat.x, cat.y, ctx.allCats);
-  cat.x = resolved.x;
-  cat.y = resolved.y;
+  // 仅在非交互状态下应用碰撞解析（追逐/逃跑/打闹由各自逻辑处理距离）
+  if (cat.action !== 'chasing' && cat.action !== 'fleeing' && cat.action !== 'playFighting') {
+    const resolved = resolveCatCollision(cat, cat.x, cat.y, ctx.allCats);
+    cat.x = resolved.x;
+    cat.y = resolved.y;
+  }
 }
 
 function updateMood(cat: Cat): void {
@@ -130,18 +132,18 @@ function updateIdleState(cat: Cat, ctx: StateContext): void {
   if (cat.idleTimer <= 0) {
     // 使用加权随机选择下一个行为
     const weights: Record<string, number> = {
-      idle: 20,
-      moving: 30 * calculateBehaviorWeight(cat.personality, 'moving'),
-      sleeping: 10 * calculateBehaviorWeight(cat.personality, 'sleeping'),
+      idle: 30,
+      moving: 40 * calculateBehaviorWeight(cat.personality, 'moving'),
+      sleeping: 12 * calculateBehaviorWeight(cat.personality, 'sleeping'),
       hiding: 5 * calculateBehaviorWeight(cat.personality, 'hiding'),
-      chasing: 10 * calculateBehaviorWeight(cat.personality, 'chasing'),
+      chasing: 2 * calculateBehaviorWeight(cat.personality, 'chasing'),
       eating: 5 * calculateBehaviorWeight(cat.personality, 'eating'),
       drinking: 3,
       exploring: 8 * calculateBehaviorWeight(cat.personality, 'exploring'),
-      socializing: 5 * calculateBehaviorWeight(cat.personality, 'socializing'),
-      watching: 4 * calculateBehaviorWeight(cat.personality, 'watching'),
+      socializing: 1 * calculateBehaviorWeight(cat.personality, 'socializing'),
+      watching: 5 * calculateBehaviorWeight(cat.personality, 'watching'),
       climbing: 4 * calculateBehaviorWeight(cat.personality, 'climbing'),
-      grooming: 5 * calculateBehaviorWeight(cat.personality, 'grooming'),
+      grooming: 8 * calculateBehaviorWeight(cat.personality, 'grooming'),
     };
 
     // 应用情绪修正
@@ -218,7 +220,7 @@ function updateMovingState(cat: Cat, ctx: StateContext): void {
     cat.x = cat.targetX;
     cat.y = cat.targetY;
     cat.action = 'idle';
-    const baseIdle = 60 + Math.floor(Math.random() * 180);
+    const baseIdle = 180 + Math.floor(Math.random() * 360);
     cat.idleTimer = Math.floor(baseIdle * getIdleDurationModifier(cat.personality));
     cat.actionTimer = 0;
     return;
@@ -246,14 +248,15 @@ function updateHidingState(cat: Cat, ctx: StateContext): void {
 function updateChasingState(cat: Cat, ctx: StateContext): void {
   if (!cat.chaseTargetId) {
     cat.action = 'idle';
-    cat.idleTimer = 30;
+    cat.idleTimer = 120 + Math.floor(Math.random() * 120);
     return;
   }
 
   const target = ctx.allCats.find((c) => c.id === cat.chaseTargetId);
   if (!target) {
     cat.action = 'idle';
-    cat.idleTimer = 30;
+    cat.idleTimer = 120 + Math.floor(Math.random() * 120);
+    cat.chaseTargetId = null;
     return;
   }
 
@@ -276,20 +279,21 @@ function updateChasingState(cat: Cat, ctx: StateContext): void {
     }
   }
 
-  moveToward(cat, target.x, target.y, getEffectiveSpeed(cat) * 1.3);
+  moveToward(cat, target.x, target.y, getEffectiveSpeed(cat) * 1.05);
 }
 
 function updateFleeingState(cat: Cat, ctx: StateContext): void {
   if (!cat.chaseTargetId) {
     cat.action = 'idle';
-    cat.idleTimer = 30;
+    cat.idleTimer = 120 + Math.floor(Math.random() * 120);
     return;
   }
 
   const chaser = ctx.allCats.find((c) => c.id === cat.chaseTargetId);
   if (!chaser) {
     cat.action = 'idle';
-    cat.idleTimer = 30;
+    cat.idleTimer = 120 + Math.floor(Math.random() * 120);
+    cat.chaseTargetId = null;
     return;
   }
 
@@ -297,9 +301,9 @@ function updateFleeingState(cat: Cat, ctx: StateContext): void {
   const dy = cat.y - chaser.y;
   const distance = Math.sqrt(dx * dx + dy * dy);
 
-  if (distance > 200) {
+  if (distance > 120) {
     cat.action = 'idle';
-    cat.idleTimer = 30 + Math.floor(Math.random() * 60);
+    cat.idleTimer = 120 + Math.floor(Math.random() * 180);
     cat.chaseTargetId = null;
     return;
   }
