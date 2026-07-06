@@ -69,4 +69,4 @@ cat-house/
 
 - [AI Agent 指南](AGENTS.md) - 技术架构和开发指导
 - [开发计划](PLAN.md) - 项目路线图和进度跟踪
-- [UI 设计规范](UI.md) - 视觉设计和交互规范
+- [设计规范](DESIGN.md) - 功能说明和视觉设计规范
