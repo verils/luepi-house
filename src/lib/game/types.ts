@@ -175,3 +175,10 @@ export interface GameState {
   weather: import('./weather-system').WeatherState; // 天气状态
   eventLog: import('./event-log').EventLogState; // 事件日志
 }
+
+// 猫咪意图事件（独立AI架构核心）
+export type CatIntent =
+  | { type: 'want_chase'; initiatorId: string; targetId: string }
+  | { type: 'want_play_fight'; initiatorId: string; targetId: string }
+  | { type: 'want_reverse_chase'; initiatorId: string; targetId: string }
+  | { type: 'want_stop_play_fighting'; catId: string };

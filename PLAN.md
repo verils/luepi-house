@@ -3,8 +3,8 @@
 ## 📊 当前进度概览
 
 **最后更新**: 2026-07-08
-**当前阶段**: 任务 6 待开始
-**已完成**: 任务 1-5（基础系统、测试优化）
+**当前阶段**: 任务 6 已完成
+**已完成**: 任务 1-6（基础系统、测试优化、独立AI架构）
 
 ---
 
@@ -17,11 +17,11 @@
 3. ✅ 静态世界
 4. ✅ 规则与交互
 5. ✅ 测试与优化
-6. **独立 AI 架构** - 状态机解耦，事件驱动的意图系统
+6. ✅ **独立 AI 架构** - 状态机解耦，事件驱动的意图系统
 
 ---
 
-### 任务 6: 状态机解耦 — 独立 AI 架构 🔄 待开始
+### 任务 6: 状态机解耦 — 独立 AI 架构 ✅ 已完成
 
 **目标**: 将两只猫的状态机从"共享上下文、直接互改"改为"独立 AI、事件驱动"。每只猫是独立的 agent，只修改自己的状态，通过事件系统感知对方。
 
@@ -62,20 +62,20 @@ type CatIntent =
 
 #### 任务清单
 
-- [ ] 引入 `CatIntent` 类型（`types.ts`）
-- [ ] `updateCatState` 返回 `CatIntent[]`
-- [ ] `startChasing` / `reverseChase` / `enterPlayFightingState` 改为返回 intent
-- [ ] 游戏循环：先独立更新，再 `resolveIntents()` 统一处理
-- [ ] `StateContext.allCats` 改为 `readonly Cat[]`
-- [ ] 碰撞解析独立化（游戏循环中单独调用）
-- [ ] 补充测试：意图收集、意图解析、独立更新
+- [x] 引入 `CatIntent` 类型（`types.ts`）
+- [x] `updateCatState` 返回 `CatIntent[]`
+- [x] `startChasing` / `reverseChase` / `enterPlayFightingState` 改为返回 intent
+- [x] 游戏循环：先独立更新，再 `resolveIntents()` 统一处理
+- [x] `StateContext.allCats` 改为 `readonly Cat[]`
+- [x] 碰撞解析独立化（游戏循环中单独调用）
+- [x] 补充测试：意图收集、意图解析、独立更新
 
 **验收标准**:
-- ⬜ 每只猫只修改自己的状态
-- ⬜ `updateCatState` 不直接写入 other 的字段
-- ⬜ 追逐/打闹通过意图系统协调
-- ⬜ 猫大部分时间独立行动
-- ⬜ 现有测试全部通过
+- ✅ 每只猫只修改自己的状态
+- ✅ `updateCatState` 不直接写入 other 的字段
+- ✅ 追逐/打闹通过意图系统协调
+- ✅ 猫大部分时间独立行动
+- ✅ 现有测试全部通过
 
 ---
 

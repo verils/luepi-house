@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { updateCatState } from './lib/game';
-  import type { GameRenderer, Camera, StateContext, GameState, Cat } from './lib/game';
+  import { updateCatState, resolveIntents } from './lib/game';
+  import type { GameRenderer, Camera, StateContext, GameState, Cat, CatIntent } from './lib/game';
   import { HOUSE_SIZE, WALL_THICKNESS } from './lib/game';
   import { updateTime, cycleTimeSpeed, formatGameTime } from './lib/game';
   import { updateWeather, getWeatherName } from './lib/game';
@@ -100,9 +100,12 @@
       },
     };
 
+    const allIntents: CatIntent[] = [];
     for (const cat of state.cats) {
-      updateCatState(cat, stateCtx);
+      const intents = updateCatState(cat, stateCtx);
+      allIntents.push(...intents);
     }
+    resolveIntents(allIntents, state.cats);
 
     gameRenderer.render(state);
     unsub();

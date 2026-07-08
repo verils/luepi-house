@@ -1,4 +1,4 @@
-import type { Cat, CatActionState, CatBed, Shelter } from './types';
+import type { Cat, CatActionState, CatBed, CatIntent, Shelter } from './types';
 import { HOUSE_SIZE, WALL_THICKNESS } from './types';
 import { calculateBehaviorWeight, getChaseReverseChance, getIdleDurationModifier } from './personality';
 import {
@@ -37,12 +37,12 @@ const MOOD_ACTION_SWITCH_MULTIPLIER: Record<string, number> = {
 export interface StateContext {
   shelters: Shelter[];
   catBeds: CatBed[];
-  allCats: Cat[];
+  allCats: readonly Cat[];
   eventLog?: EventLogState;
   gameTime?: { hour: number; minute: number; day: number };
 }
 
-export function updateCatState(cat: Cat, ctx: StateContext): void {
+export function updateCatState(cat: Cat, ctx: StateContext): CatIntent[] {
   const previousAction = cat.action;
   cat.actionTimer++;
 
@@ -51,13 +51,15 @@ export function updateCatState(cat: Cat, ctx: StateContext): void {
   if (cat.actionSwitchTimer > 0) {
     cat.actionSwitchTimer--;
     if (cat.actionSwitchTimer <= 0) {
-      switchExcitedAction(cat, ctx);
+      const switchIntents = switchExcitedAction(cat, ctx);
+      if (switchIntents.length > 0) { return switchIntents; }
     }
   }
 
+  let intents: CatIntent[] = [];
   switch (cat.action) {
     case 'idle':
-      updateIdleState(cat, ctx);
+      intents = updateIdleState(cat, ctx);
       break;
     case 'moving':
       updateMovingState(cat, ctx);
@@ -69,7 +71,7 @@ export function updateCatState(cat: Cat, ctx: StateContext): void {
       updateHidingState(cat, ctx);
       break;
     case 'chasing':
-      updateChasingState(cat, ctx);
+      intents = updateChasingState(cat, ctx);
       break;
     case 'fleeing':
       updateFleeingState(cat, ctx);
@@ -78,7 +80,7 @@ export function updateCatState(cat: Cat, ctx: StateContext): void {
       updateGroomingState(cat, ctx);
       break;
     case 'playFighting':
-      updatePlayFightingState(cat, ctx);
+      intents = updatePlayFightingState(cat, ctx);
       break;
   }
 
@@ -95,6 +97,8 @@ export function updateCatState(cat: Cat, ctx: StateContext): void {
     cat.x = resolved.x;
     cat.y = resolved.y;
   }
+
+  return intents;
 }
 
 function updateMood(cat: Cat): void {
@@ -126,7 +130,7 @@ function getActionSwitchInterval(cat: Cat): number {
   return Math.floor(base * MOOD_ACTION_SWITCH_MULTIPLIER[moodThreshold]);
 }
 
-function updateIdleState(cat: Cat, ctx: StateContext): void {
+function updateIdleState(cat: Cat, ctx: StateContext): CatIntent[] {
   cat.idleTimer--;
 
   if (cat.idleTimer <= 0) {
@@ -164,7 +168,7 @@ function updateIdleState(cat: Cat, ctx: StateContext): void {
     switch (action) {
       case 'chasing':
         if (ctx.allCats.length > 1) {
-          startChasing(cat, ctx);
+          return startChasing(cat, ctx);
         } else {
           enterMovingState(cat);
         }
@@ -193,7 +197,7 @@ function updateIdleState(cat: Cat, ctx: StateContext): void {
         break;
       case 'socializing':
         if (ctx.allCats.length > 1) {
-          startChasing(cat, ctx);
+          return startChasing(cat, ctx);
         } else {
           enterMovingState(cat);
         }
@@ -209,6 +213,7 @@ function updateIdleState(cat: Cat, ctx: StateContext): void {
         break;
     }
   }
+  return [];
 }
 
 function updateMovingState(cat: Cat, ctx: StateContext): void {
@@ -245,11 +250,11 @@ function updateHidingState(cat: Cat, ctx: StateContext): void {
   }
 }
 
-function updateChasingState(cat: Cat, ctx: StateContext): void {
+function updateChasingState(cat: Cat, ctx: StateContext): CatIntent[] {
   if (!cat.chaseTargetId) {
     cat.action = 'idle';
     cat.idleTimer = 120 + Math.floor(Math.random() * 120);
-    return;
+    return [];
   }
 
   const target = ctx.allCats.find((c) => c.id === cat.chaseTargetId);
@@ -257,7 +262,7 @@ function updateChasingState(cat: Cat, ctx: StateContext): void {
     cat.action = 'idle';
     cat.idleTimer = 120 + Math.floor(Math.random() * 120);
     cat.chaseTargetId = null;
-    return;
+    return [];
   }
 
   const dx = target.x - cat.x;
@@ -266,20 +271,19 @@ function updateChasingState(cat: Cat, ctx: StateContext): void {
 
   if (distance < CAT_SEPARATION_DISTANCE * 1.5) {
     if (Math.random() < PLAY_FIGHT_CHANCE) {
-      enterPlayFightingState(cat, target);
-      return;
+      return enterPlayFightingState(cat, target);
     }
     if (Math.random() < GROOMING_CHANCE) {
       enterGroomingState(cat);
-      return;
+      return [];
     }
     if (Math.random() < getChaseReverseChance(cat.personality)) {
-      reverseChase(cat, target);
-      return;
+      return reverseChase(cat, target);
     }
   }
 
   moveToward(cat, target.x, target.y, getEffectiveSpeed(cat) * 1.05);
+  return [];
 }
 
 function updateFleeingState(cat: Cat, ctx: StateContext): void {
@@ -331,67 +335,56 @@ function updateGroomingState(cat: Cat, ctx: StateContext): void {
   }
 }
 
-function updatePlayFightingState(cat: Cat, ctx: StateContext): void {
+function updatePlayFightingState(cat: Cat, ctx: StateContext): CatIntent[] {
   if (cat.actionTimer > 90 + Math.random() * 90) {
     cat.action = 'idle';
     cat.idleTimer = 30 + Math.floor(Math.random() * 60);
     cat.actionTimer = 0;
     cat.chaseTargetId = null;
-
-    for (const other of ctx.allCats) {
-      if (other.chaseTargetId === cat.id) {
-        other.action = 'idle';
-        other.idleTimer = 30 + Math.floor(Math.random() * 60);
-        other.actionTimer = 0;
-        other.chaseTargetId = null;
-      }
-    }
+    return [{ type: 'want_stop_play_fighting', catId: cat.id }];
   }
+  return [];
 }
 
-function startChasing(cat: Cat, ctx: StateContext): void {
+function startChasing(cat: Cat, ctx: StateContext): CatIntent[] {
   const otherCats = ctx.allCats.filter((c) => c.id !== cat.id);
-  if (otherCats.length === 0) {return;}
+  if (otherCats.length === 0) {return [];}
 
   // 过滤掉不可追逐的状态
   const chaseable = otherCats.filter(c =>
     c.action !== 'sleeping' && c.action !== 'hiding' && c.action !== 'playFighting'
   );
-  if (chaseable.length === 0) {return;}
+  if (chaseable.length === 0) {return [];}
 
   const target = chaseable[Math.floor(Math.random() * chaseable.length)];
 
-  // 应用情绪事件
+  // 只修改自身
   applyMoodEvent(cat.mood, 'chase_start', cat.personality, Date.now());
-  applyMoodEvent(target.mood, 'flee', target.personality, Date.now());
 
   cat.chaseTargetId = target.id;
   cat.actionSwitchTimer = getActionSwitchInterval(cat);
   cat.action = 'chasing';
   cat.actionTimer = 0;
 
-  target.chaseTargetId = cat.id;
-  target.action = 'fleeing';
-  target.actionTimer = 0;
-  target.actionSwitchTimer = getActionSwitchInterval(target);
+  return [{ type: 'want_chase', initiatorId: cat.id, targetId: target.id }];
 }
 
-function switchExcitedAction(cat: Cat, ctx: StateContext): void {
+function switchExcitedAction(cat: Cat, ctx: StateContext): CatIntent[] {
   const moodThreshold = getMoodThreshold(cat.mood.value);
-  if (moodThreshold !== 'excited' && moodThreshold !== 'euphoric') {return;}
+  if (moodThreshold !== 'excited' && moodThreshold !== 'euphoric') {return [];}
 
   cat.actionSwitchTimer = getActionSwitchInterval(cat);
 
   if (!cat.chaseTargetId) {
     cat.action = 'idle';
-    return;
+    return [];
   }
 
   const target = ctx.allCats.find((c) => c.id === cat.chaseTargetId);
   if (!target) {
     cat.action = 'idle';
     cat.chaseTargetId = null;
-    return;
+    return [];
   }
 
   const dx = target.x - cat.x;
@@ -402,39 +395,35 @@ function switchExcitedAction(cat: Cat, ctx: StateContext): void {
 
   if (distance < CAT_SEPARATION_DISTANCE * 2) {
     if (roll < PLAY_FIGHT_CHANCE) {
-      enterPlayFightingState(cat, target);
+      return enterPlayFightingState(cat, target);
     } else if (roll < PLAY_FIGHT_CHANCE + GROOMING_CHANCE) {
       enterGroomingState(cat);
     } else if (roll < PLAY_FIGHT_CHANCE + GROOMING_CHANCE + getChaseReverseChance(cat.personality)) {
-      reverseChase(cat, target);
+      return reverseChase(cat, target);
     } else {
       cat.action = 'chasing';
     }
   } else {
     cat.action = 'chasing';
   }
+  return [];
 }
 
-function reverseChase(cat: Cat, target: Cat): void {
+function reverseChase(cat: Cat, target: Cat): CatIntent[] {
   cat.action = 'fleeing';
   cat.chaseTargetId = target.id;
   cat.actionTimer = 0;
 
-  target.action = 'chasing';
-  target.chaseTargetId = cat.id;
-  target.actionTimer = 0;
+  return [{ type: 'want_reverse_chase', initiatorId: cat.id, targetId: target.id }];
 }
 
-function enterPlayFightingState(cat: Cat, target: Cat): void {
+function enterPlayFightingState(cat: Cat, target: Cat): CatIntent[] {
   cat.action = 'playFighting';
   cat.actionTimer = 0;
   cat.targetX = (cat.x + target.x) / 2;
   cat.targetY = (cat.y + target.y) / 2;
 
-  target.action = 'playFighting';
-  target.actionTimer = 0;
-  target.targetX = cat.targetX;
-  target.targetY = cat.targetY;
+  return [{ type: 'want_play_fight', initiatorId: cat.id, targetId: target.id }];
 }
 
 function enterGroomingState(cat: Cat): void {
@@ -550,7 +539,7 @@ function resolveCatCollision(
   cat: Cat,
   newX: number,
   newY: number,
-  allCats: Cat[]
+  allCats: readonly Cat[]
 ): { x: number; y: number } {
   let resultX = newX;
   let resultY = newY;
