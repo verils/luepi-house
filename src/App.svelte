@@ -46,7 +46,9 @@
   });
 
   function centerCameraOnHouse() {
-    if (!camera || !gameRenderer) return;
+    if (!camera || !gameRenderer) {
+      return;
+    }
     const viewportCenterX = innerWidth / 2;
     const viewportCenterY = innerHeight / 2;
     const houseCenterX = (HOUSE_SIZE + WALL_THICKNESS * 2) / 2;
@@ -114,11 +116,15 @@
   }
 
   function resetCamera() {
-    if (!camera || !gameRenderer) return;
+    if (!camera || !gameRenderer) {
+      return;
+    }
     let state: GameState | null = null;
     const unsub = gameState.subscribe((s) => (state = s));
     unsub();
-    if (!state) return;
+    if (!state) {
+      return;
+    }
 
     camera.x = 0;
     camera.y = 0;
@@ -128,22 +134,30 @@
   }
 
   function zoomIn() {
-    if (!camera || !gameRenderer) return;
+    if (!camera || !gameRenderer) {
+      return;
+    }
     let state: GameState | null = null;
     const unsub = gameState.subscribe((s) => (state = s));
     unsub();
-    if (!state) return;
+    if (!state) {
+      return;
+    }
 
     camera.zoomAt(1.2);
     gameRenderer.render(state);
   }
 
   function zoomOut() {
-    if (!camera || !gameRenderer) return;
+    if (!camera || !gameRenderer) {
+      return;
+    }
     let state: GameState | null = null;
     const unsub = gameState.subscribe((s) => (state = s));
     unsub();
-    if (!state) return;
+    if (!state) {
+      return;
+    }
 
     camera.zoomAt(0.8);
     gameRenderer.render(state);
@@ -161,7 +175,9 @@
     let state = null as GameState | null;
     const unsub = gameState.subscribe((s) => (state = s));
     unsub();
-    if (!state) return;
+    if (!state) {
+      return;
+    }
 
     state.time.speed = cycleTimeSpeed(state.time.speed);
     gameState.set(state);
