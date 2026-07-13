@@ -1,5 +1,5 @@
-import type { Cat, CatActionState, CatBed, CatIntent, Shelter } from './types';
-import { HOUSE_SIZE, WALL_THICKNESS } from './types';
+import type { Cat, CatActionState, CatBed, CatIntent, Shelter, SolidObject, Furniture, House } from './types';
+import { HOUSE_WIDTH, HOUSE_HEIGHT, WALL_THICKNESS } from './types';
 import { calculateBehaviorWeight, getChaseReverseChance, getIdleDurationModifier } from './personality';
 import {
   applyMoodEvent,
@@ -37,6 +37,9 @@ const MOOD_ACTION_SWITCH_MULTIPLIER: Record<string, number> = {
 export interface StateContext {
   shelters: Shelter[];
   catBeds: CatBed[];
+  furnitures: Furniture[];
+  solidObjects: readonly SolidObject[];
+  house: House;
   allCats: readonly Cat[];
   eventLog?: EventLogState;
   gameTime?: { hour: number; minute: number; day: number };
@@ -93,9 +96,10 @@ export function updateCatState(cat: Cat, ctx: StateContext): CatIntent[] {
 
   // 仅在非交互状态下应用碰撞解析（追逐/逃跑/打闹由各自逻辑处理距离）
   if (cat.action !== 'chasing' && cat.action !== 'fleeing' && cat.action !== 'playFighting') {
-    const resolved = resolveCatCollision(cat, cat.x, cat.y, ctx.allCats);
-    cat.x = resolved.x;
-    cat.y = resolved.y;
+    const resolved = resolveCatCollision(cat, cat.x, cat.y, ctx.allCats, ctx.house);
+    const solidResolved = resolveSolidCollisions(cat, resolved.x, resolved.y, ctx.solidObjects);
+    cat.x = solidResolved.x;
+    cat.y = solidResolved.y;
   }
 
   return intents;
@@ -231,7 +235,7 @@ function updateMovingState(cat: Cat, ctx: StateContext): void {
     return;
   }
 
-  moveToward(cat, cat.targetX, cat.targetY, getEffectiveSpeed(cat));
+  moveToward(cat, cat.targetX, cat.targetY, getEffectiveSpeed(cat), ctx);
 }
 
 function updateSleepingState(cat: Cat, ctx: StateContext): void {
@@ -282,7 +286,7 @@ function updateChasingState(cat: Cat, ctx: StateContext): CatIntent[] {
     }
   }
 
-  moveToward(cat, target.x, target.y, getEffectiveSpeed(cat) * 1.05);
+  moveToward(cat, target.x, target.y, getEffectiveSpeed(cat) * 1.05, ctx);
   return [];
 }
 
@@ -315,16 +319,16 @@ function updateFleeingState(cat: Cat, ctx: StateContext): void {
   if (distance > 0) {
     const fleeX = cat.x + (dx / distance) * getEffectiveSpeed(cat) * 1.2;
     const fleeY = cat.y + (dy / distance) * getEffectiveSpeed(cat) * 1.2;
-    cat.targetX = clampToHouseX(fleeX, cat);
-    cat.targetY = clampToHouseY(fleeY, cat);
+    cat.targetX = clampToHouseX(fleeX, cat, ctx.house);
+    cat.targetY = clampToHouseY(fleeY, cat, ctx.house);
   } else {
     // 零距离：随机方向逃跑
     const angle = Math.random() * Math.PI * 2;
     const speed = getEffectiveSpeed(cat) * 1.2;
-    cat.targetX = clampToHouseX(cat.x + Math.cos(angle) * speed, cat);
-    cat.targetY = clampToHouseY(cat.y + Math.sin(angle) * speed, cat);
+    cat.targetX = clampToHouseX(cat.x + Math.cos(angle) * speed, cat, ctx.house);
+    cat.targetY = clampToHouseY(cat.y + Math.sin(angle) * speed, cat, ctx.house);
   }
-  moveToward(cat, cat.targetX, cat.targetY, getEffectiveSpeed(cat) * 1.2);
+  moveToward(cat, cat.targetX, cat.targetY, getEffectiveSpeed(cat) * 1.2, ctx);
 }
 
 function updateGroomingState(cat: Cat, ctx: StateContext): void {
@@ -435,11 +439,13 @@ function enterGroomingState(cat: Cat): void {
 
 function enterMovingState(cat: Cat, ctx?: StateContext): void {
   const margin = cat.visualWidth;
+  const houseW = ctx?.house.width ?? HOUSE_WIDTH;
+  const houseH = ctx?.house.height ?? HOUSE_HEIGHT;
   let attempts = 0;
   let tx: number, ty: number;
   do {
-    tx = WALL_THICKNESS + margin + Math.random() * (HOUSE_SIZE - margin * 2);
-    ty = WALL_THICKNESS + margin + Math.random() * (HOUSE_SIZE - margin * 2);
+    tx = WALL_THICKNESS + margin + Math.random() * (houseW - margin * 2);
+    ty = WALL_THICKNESS + margin + Math.random() * (houseH - margin * 2);
     attempts++;
   } while (ctx && isInsideObject(tx, ty, ctx) && attempts < 5);
 
@@ -455,6 +461,9 @@ function isInsideObject(x: number, y: number, ctx: StateContext): boolean {
   }
   for (const b of ctx.catBeds) {
     if (x >= b.x && x <= b.x + b.width && y >= b.y && y <= b.y + b.height) {return true;}
+  }
+  for (const f of ctx.furnitures) {
+    if (x >= f.x && x <= f.x + f.width && y >= f.y && y <= f.y + f.height) {return true;}
   }
   return false;
 }
@@ -495,7 +504,7 @@ function enterHidingState(cat: Cat, ctx: StateContext): void {
   cat.actionTimer = 0;
 }
 
-function moveToward(cat: Cat, targetX: number, targetY: number, speed: number): void {
+function moveToward(cat: Cat, targetX: number, targetY: number, speed: number, ctx?: StateContext): void {
   const dx = targetX - cat.x;
   const dy = targetY - cat.y;
   const distance = Math.sqrt(dx * dx + dy * dy);
@@ -512,26 +521,32 @@ function moveToward(cat: Cat, targetX: number, targetY: number, speed: number): 
   let newX = cat.x + dirX * speed;
   let newY = cat.y + dirY * speed;
 
-  newX = clampToHouseX(newX, cat);
-  newY = clampToHouseY(newY, cat);
+  newX = clampToHouseX(newX, cat, ctx?.house);
+  newY = clampToHouseY(newY, cat, ctx?.house);
+
+  if (ctx) {
+    const resolved = resolveSolidCollisions(cat, newX, newY, ctx.solidObjects);
+    newX = resolved.x;
+    newY = resolved.y;
+  }
 
   cat.x = newX;
   cat.y = newY;
 }
 
-function clampToHouseX(x: number, cat: Cat): number {
+function clampToHouseX(x: number, cat: Cat, house?: House): number {
   const halfWidth = cat.visualWidth / 2;
   const clearance = Math.max(cat.collisionRadius, halfWidth);
   const minX = WALL_THICKNESS + clearance - halfWidth;
-  const maxX = WALL_THICKNESS + HOUSE_SIZE - clearance - halfWidth;
+  const maxX = WALL_THICKNESS + (house?.width ?? HOUSE_WIDTH) - clearance - halfWidth;
   return Math.max(minX, Math.min(x, maxX));
 }
 
-function clampToHouseY(y: number, cat: Cat): number {
+function clampToHouseY(y: number, cat: Cat, house?: House): number {
   const halfHeight = cat.visualHeight / 2;
   const clearance = Math.max(cat.collisionRadius, halfHeight);
   const minY = WALL_THICKNESS + clearance - halfHeight;
-  const maxY = WALL_THICKNESS + HOUSE_SIZE - clearance - halfHeight;
+  const maxY = WALL_THICKNESS + (house?.height ?? HOUSE_HEIGHT) - clearance - halfHeight;
   return Math.max(minY, Math.min(y, maxY));
 }
 
@@ -539,7 +554,8 @@ function resolveCatCollision(
   cat: Cat,
   newX: number,
   newY: number,
-  allCats: readonly Cat[]
+  allCats: readonly Cat[],
+  house?: House
 ): { x: number; y: number } {
   let resultX = newX;
   let resultY = newY;
@@ -568,10 +584,40 @@ function resolveCatCollision(
       resultX += pushX;
       resultY += pushY;
 
-      resultX = clampToHouseX(resultX, cat);
-      resultY = clampToHouseY(resultY, cat);
+      resultX = clampToHouseX(resultX, cat, house);
+      resultY = clampToHouseY(resultY, cat, house);
     }
   }
 
   return { x: resultX, y: resultY };
+}
+
+function resolveSolidCollisions(
+  cat: Cat,
+  x: number,
+  y: number,
+  solidObjects: readonly SolidObject[]
+): { x: number; y: number } {
+  let rx = x;
+  let ry = y;
+  const cx = rx + cat.visualWidth / 2;
+  const cy = ry + cat.visualHeight / 2;
+  const r = cat.collisionRadius;
+
+  for (const obj of solidObjects) {
+    const nearestX = Math.max(obj.x, Math.min(cx, obj.x + obj.width));
+    const nearestY = Math.max(obj.y, Math.min(cy, obj.y + obj.height));
+    const dx = cx - nearestX;
+    const dy = cy - nearestY;
+    const distSq = dx * dx + dy * dy;
+
+    if (distSq < r * r) {
+      const dist = Math.sqrt(distSq) || 0.001;
+      const overlap = r - dist;
+      rx += (dx / dist) * overlap;
+      ry += (dy / dist) * overlap;
+    }
+  }
+
+  return { x: rx, y: ry };
 }

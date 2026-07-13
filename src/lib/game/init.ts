@@ -1,10 +1,14 @@
 import {
   TILE_SIZE,
-  HOUSE_SIZE,
+  HOUSE_WIDTH,
+  HOUSE_HEIGHT,
+  WALL_THICKNESS,
   TileType,
   type GameState,
   type Tile,
   type MapConfig,
+  type SolidObject,
+  type Wall,
 } from './types';
 import { MAP_CONFIG } from '../config/map';
 import { CAT_CONFIGS, createCatFromConfig } from '../config/cats';
@@ -14,10 +18,11 @@ import { createWeatherState } from './weather-system';
 
 function initTiles(): Tile[] {
   const tiles: Tile[] = [];
-  const tilesCount = HOUSE_SIZE / TILE_SIZE;
+  const cols = HOUSE_WIDTH / TILE_SIZE;
+  const rows = HOUSE_HEIGHT / TILE_SIZE;
 
-  for (let row = 0; row < tilesCount; row++) {
-    for (let col = 0; col < tilesCount; col++) {
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
       tiles.push({
         x: MAP_CONFIG.house.x + col * TILE_SIZE,
         y: MAP_CONFIG.house.y + row * TILE_SIZE,
@@ -30,10 +35,29 @@ function initTiles(): Tile[] {
   return tiles;
 }
 
+function isInteriorWall(wall: Wall): boolean {
+  return wall.x > WALL_THICKNESS
+    && wall.y > WALL_THICKNESS
+    && wall.x + wall.width < WALL_THICKNESS + HOUSE_WIDTH + WALL_THICKNESS
+    && wall.y + wall.height < WALL_THICKNESS + HOUSE_HEIGHT + WALL_THICKNESS;
+}
+
+function buildSolidObjects(walls: Wall[]): SolidObject[] {
+  const solids: SolidObject[] = [];
+  for (const w of walls) {
+    if (isInteriorWall(w)) {
+      solids.push({ x: w.x, y: w.y, width: w.width, height: w.height });
+    }
+  }
+  return solids;
+}
+
 function initCats() {
+  const livingRoomX = WALL_THICKNESS + 320 + WALL_THICKNESS;
+  const livingRoomWidth = HOUSE_WIDTH - 320 - WALL_THICKNESS;
   const positions = [
-    { x: MAP_CONFIG.house.x + HOUSE_SIZE / 3, y: MAP_CONFIG.house.y + HOUSE_SIZE / 2 },
-    { x: MAP_CONFIG.house.x + (HOUSE_SIZE * 2) / 3, y: MAP_CONFIG.house.y + HOUSE_SIZE / 2 },
+    { x: livingRoomX + livingRoomWidth / 3, y: WALL_THICKNESS + HOUSE_HEIGHT / 2 },
+    { x: livingRoomX + (livingRoomWidth * 2) / 3, y: WALL_THICKNESS + HOUSE_HEIGHT / 2 },
   ];
 
   return CAT_CONFIGS.map((config, i) => createCatFromConfig(config, positions[i].x, positions[i].y));
@@ -47,6 +71,7 @@ export function initGameState(): GameState {
     walls: MAP_CONFIG.walls,
     shelters: MAP_CONFIG.shelters,
     catBeds: MAP_CONFIG.catBeds,
+    furnitures: MAP_CONFIG.furnitures,
     defaultFloor: MAP_CONFIG.defaultFloor,
   };
 
@@ -55,6 +80,10 @@ export function initGameState(): GameState {
   const time = createTimeState();
   const weather = createWeatherState();
   const eventLog = createEventLogState();
+  const solidObjects = [
+    ...buildSolidObjects(map.walls),
+    ...map.furnitures,
+  ];
 
   return {
     map,
@@ -64,6 +93,8 @@ export function initGameState(): GameState {
     tiles,
     shelters: map.shelters,
     catBeds: map.catBeds,
+    furnitures: map.furnitures,
+    solidObjects,
     time,
     weather,
     eventLog,

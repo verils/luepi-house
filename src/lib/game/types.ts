@@ -1,7 +1,9 @@
 // 游戏常量定义
 export const TILE_SIZE = 32; // 瓷砖大小 32x32px
 export const WALL_THICKNESS = 24; // 墙体厚度 24px
-export const HOUSE_SIZE = 640; // 房屋大小 640x640px
+export const HOUSE_SIZE = 640; // 房屋大小 640x640px（向后兼容）
+export const HOUSE_WIDTH = 960; // 房屋总宽度（含新房间）
+export const HOUSE_HEIGHT = 640; // 房屋总高度
 export const CAT_VISUAL_SIZE = 32; // 猫咪视觉尺寸 32x32px（标准Sprite尺寸）
 export const CAT_COLLISION_RADIUS = 16; // 猫咪碰撞半径 16px
 
@@ -70,6 +72,21 @@ export interface CatBed {
   height: number;
 }
 
+// 碰撞基元（可碰撞的矩形区域）
+export interface SolidObject {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+// 家具接口（有碰撞的装饰物）
+export interface Furniture extends SolidObject {
+  id: string;
+  name: string;
+  wallPlaced: boolean;
+}
+
 // 地图配置接口
 export interface MapConfig {
   width: number; // 地图总宽度
@@ -78,6 +95,7 @@ export interface MapConfig {
   walls: Wall[]; // 所有墙体（边界墙 + 内部墙）
   shelters: Shelter[]; // 庇护所列表
   catBeds: CatBed[]; // 猫窝列表
+  furnitures: Furniture[]; // 家具列表
   defaultFloor: FloorType; // 默认地板类型
 }
 
@@ -171,6 +189,8 @@ export interface GameState {
   tiles: Tile[];
   shelters: Shelter[];
   catBeds: CatBed[];
+  furnitures: Furniture[]; // 家具列表
+  solidObjects: SolidObject[]; // 所有可碰撞对象（内部墙 + 家具）
   time: import('./time-system').TimeState; // 时间状态
   weather: import('./weather-system').WeatherState; // 天气状态
   eventLog: import('./event-log').EventLogState; // 事件日志

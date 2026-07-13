@@ -47,6 +47,9 @@ function createCtx(cats: Cat[]): StateContext {
   return {
     shelters: [],
     catBeds: [],
+    furnitures: [],
+    solidObjects: [],
+    house: { x: 24, y: 24, width: 960, height: 640 },
     allCats: cats,
   };
 }

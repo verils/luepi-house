@@ -1,5 +1,5 @@
-import type { GameState, Tile, Wall, Cat, Shelter, CatBed } from './types';
-import { TILE_SIZE, WALL_THICKNESS, HOUSE_SIZE, FloorType, WallType } from './types';
+import type { GameState, Tile, Wall, Cat, Shelter, CatBed, Furniture } from './types';
+import { TILE_SIZE, WALL_THICKNESS, HOUSE_WIDTH, HOUSE_HEIGHT, FloorType, WallType } from './types';
 import { Camera } from './camera';
 import { LuelueCatRenderer, PipiCatRenderer, DefaultCatRenderer, CatRenderer } from './cat-renderer';
 import { TextureManager } from './texture-manager';
@@ -86,6 +86,7 @@ export class GameRenderer {
     this.renderTilesToCtx(offCtx, state.tiles);
     this.renderSheltersToCtx(offCtx, state.shelters);
     this.renderCatBedsToCtx(offCtx, state.catBeds);
+    this.renderFurnituresToCtx(offCtx, state.furnitures);
     this.renderWallsToCtx(offCtx, state.walls);
   }
 
@@ -126,20 +127,21 @@ export class GameRenderer {
     this.ctx.lineWidth = 3 / this.camera.zoom;
     this.ctx.strokeRect(canvasRect.x, canvasRect.y, canvasWidth, canvasHeight);
 
-    const mapSize = HOUSE_SIZE + WALL_THICKNESS * 2;
+    const mapSizeX = HOUSE_WIDTH + WALL_THICKNESS * 2;
+    const mapSizeY = HOUSE_HEIGHT + WALL_THICKNESS * 2;
     this.ctx.fillStyle = 'rgba(0, 0, 255, 0.15)';
-    this.ctx.fillRect(0, 0, mapSize, mapSize);
+    this.ctx.fillRect(0, 0, mapSizeX, mapSizeY);
 
     this.ctx.strokeStyle = '#0066FF';
     this.ctx.lineWidth = 3 / this.camera.zoom;
-    this.ctx.strokeRect(0, 0, mapSize, mapSize);
+    this.ctx.strokeRect(0, 0, mapSizeX, mapSizeY);
 
     this.ctx.fillStyle = 'rgba(0, 255, 0, 0.15)';
-    this.ctx.fillRect(WALL_THICKNESS, WALL_THICKNESS, HOUSE_SIZE, HOUSE_SIZE);
+    this.ctx.fillRect(WALL_THICKNESS, WALL_THICKNESS, HOUSE_WIDTH, HOUSE_HEIGHT);
 
     this.ctx.strokeStyle = '#00CC00';
     this.ctx.lineWidth = 3 / this.camera.zoom;
-    this.ctx.strokeRect(WALL_THICKNESS, WALL_THICKNESS, HOUSE_SIZE, HOUSE_SIZE);
+    this.ctx.strokeRect(WALL_THICKNESS, WALL_THICKNESS, HOUSE_WIDTH, HOUSE_HEIGHT);
   }
 
   /**
@@ -229,6 +231,105 @@ export class GameRenderer {
         bed.x + bed.width / 2,
         bed.y + bed.height / 2 + 4
       );
+    }
+  }
+
+  /**
+   * 渲染家具（简笔画轮廓）
+   */
+  private renderFurnituresToCtx(ctx: CanvasRenderingContext2D, furnitures: Furniture[]): void {
+    for (const f of furnitures) {
+      ctx.strokeStyle = '#5C4033';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(f.x, f.y, f.width, f.height);
+
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.1)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(f.x + 1, f.y + 1, f.width - 2, f.height - 2);
+
+      this.renderFurnitureDetail(ctx, f);
+
+      ctx.fillStyle = '#5C4033';
+      ctx.font = '9px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(f.name, f.x + f.width / 2, f.y + f.height / 2 + 3);
+    }
+  }
+
+  private renderFurnitureDetail(ctx: CanvasRenderingContext2D, f: Furniture): void {
+    ctx.strokeStyle = 'rgba(92, 64, 51, 0.5)';
+    ctx.lineWidth = 1;
+
+    switch (f.id) {
+      case 'sofa': {
+        const backY = f.y + 8;
+        ctx.beginPath();
+        ctx.moveTo(f.x + 4, backY);
+        ctx.lineTo(f.x + f.width - 4, backY);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(f.x + 6, f.y + 4);
+        ctx.lineTo(f.x + 6, f.y + f.height - 4);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(f.x + f.width - 6, f.y + 4);
+        ctx.lineTo(f.x + f.width - 6, f.y + f.height - 4);
+        ctx.stroke();
+        break;
+      }
+      case 'bookshelf': {
+        const rows = 3;
+        const cols = 4;
+        for (let r = 1; r < rows; r++) {
+          const y = f.y + (f.height / rows) * r;
+          ctx.beginPath();
+          ctx.moveTo(f.x + 2, y);
+          ctx.lineTo(f.x + f.width - 2, y);
+          ctx.stroke();
+        }
+        for (let c = 1; c < cols; c++) {
+          const x = f.x + (f.width / cols) * c;
+          ctx.beginPath();
+          ctx.moveTo(x, f.y + 2);
+          ctx.lineTo(x, f.y + f.height - 2);
+          ctx.stroke();
+        }
+        break;
+      }
+      case 'desk': {
+        ctx.beginPath();
+        ctx.moveTo(f.x + 4, f.y + f.height * 0.6);
+        ctx.lineTo(f.x + f.width - 4, f.y + f.height * 0.6);
+        ctx.stroke();
+        const drawerX = f.x + f.width * 0.6;
+        ctx.strokeRect(drawerX, f.y + f.height * 0.6 + 2, f.width * 0.3, f.height * 0.3);
+        break;
+      }
+      case 'chair': {
+        ctx.beginPath();
+        ctx.moveTo(f.x + f.width / 2, f.y + 2);
+        ctx.lineTo(f.x + f.width / 2, f.y + f.height - 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(f.x + 2, f.y + f.height / 2);
+        ctx.lineTo(f.x + f.width - 2, f.y + f.height / 2);
+        ctx.stroke();
+        break;
+      }
+      case 'catbox': {
+        ctx.beginPath();
+        ctx.moveTo(f.x + f.width * 0.2, f.y + 2);
+        ctx.quadraticCurveTo(f.x + f.width / 2, f.y - 6, f.x + f.width * 0.8, f.y + 2);
+        ctx.stroke();
+        break;
+      }
+      case 'coffeeTable': {
+        ctx.beginPath();
+        ctx.moveTo(f.x + 4, f.y + f.height / 2);
+        ctx.lineTo(f.x + f.width - 4, f.y + f.height / 2);
+        ctx.stroke();
+        break;
+      }
     }
   }
 
