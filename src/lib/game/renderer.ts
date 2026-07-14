@@ -381,6 +381,15 @@ export class GameRenderer {
     ctx.strokeStyle = '#000000';
     ctx.lineWidth = 2;
     ctx.strokeRect(wall.x, wall.y, wall.width, wall.height);
+
+    // 室内墙踢脚线装饰
+    if (wallType === WallType.PLASTER) {
+      const trimHeight = 4;
+      ctx.fillStyle = '#8B6914';
+      ctx.fillRect(wall.x + 1, wall.y + wall.height - trimHeight, wall.width - 2, trimHeight);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+      ctx.fillRect(wall.x + 1, wall.y + wall.height - trimHeight, wall.width - 2, 1);
+    }
   }
 
   /**

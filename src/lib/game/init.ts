@@ -36,10 +36,10 @@ function initTiles(): Tile[] {
 }
 
 function isInteriorWall(wall: Wall): boolean {
-  return wall.x > WALL_THICKNESS
-    && wall.y > WALL_THICKNESS
-    && wall.x + wall.width < WALL_THICKNESS + HOUSE_WIDTH + WALL_THICKNESS
-    && wall.y + wall.height < WALL_THICKNESS + HOUSE_HEIGHT + WALL_THICKNESS;
+  return wall.x >= WALL_THICKNESS
+    && wall.y >= WALL_THICKNESS
+    && wall.x + wall.width <= WALL_THICKNESS + HOUSE_WIDTH + WALL_THICKNESS
+    && wall.y + wall.height <= WALL_THICKNESS + HOUSE_HEIGHT + WALL_THICKNESS;
 }
 
 function buildSolidObjects(walls: Wall[]): SolidObject[] {

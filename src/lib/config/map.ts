@@ -38,7 +38,7 @@ export const MAP_CONFIG: MapConfigData = {
     // 隔断墙上段（门洞上方）
     { x: DIVIDER_X, y: WALL_THICKNESS, width: WALL_THICKNESS, height: DIVIDER_TOP_HEIGHT, wallType: WallType.PLASTER },
     // 隔断墙下段（门洞下方）
-    { x: DIVIDER_X, y: WALL_THICKNESS + DIVIDER_TOP_HEIGHT + DOOR_GAP, width: WALL_THICKNESS, height: DOOR_GAP, wallType: WallType.PLASTER },
+    { x: DIVIDER_X, y: WALL_THICKNESS + DIVIDER_TOP_HEIGHT + DOOR_GAP, width: WALL_THICKNESS, height: WALL_THICKNESS, wallType: WallType.PLASTER },
   ],
   shelters: [
     {
