@@ -1,4 +1,4 @@
-import { TILE_SIZE, FloorType, WallType } from './types';
+import { TILE_SIZE, FloorType } from './types';
 
 /**
  * 纹理管理器
@@ -25,8 +25,8 @@ export class TextureManager {
   /**
    * 获取墙壁纹理 Pattern
    */
-  getWallPattern(wallType: WallType): CanvasPattern | null {
-    return this.patterns.get(`wall_${wallType}`) ?? null;
+  getWallPattern(): CanvasPattern | null {
+    return this.patterns.get('wall_brick') ?? null;
   }
 
   /**
@@ -47,7 +47,6 @@ export class TextureManager {
 
     // 墙壁纹理
     this.createBrickWallTexture();
-    this.createPlasterWallTexture();
   }
 
   /**
@@ -201,32 +200,6 @@ export class TextureManager {
       ctx.fillRect(15, 0, 2, 8); // 垂直缝
       ctx.fillRect(7, 8, 2, 8); // 垂直缝（偏移）
       ctx.fillRect(23, 8, 2, 8); // 垂直缝
-    });
-  }
-
-  /**
-   * 粉刷墙纹理 - 浅色平整墙面
-   */
-  private createPlasterWallTexture(): void {
-    this.registerTexture('wall_plaster', (ctx, size) => {
-      // 基础墙面色（暖白）
-      ctx.fillStyle = '#F5F0E8';
-      ctx.fillRect(0, 0, size, size);
-
-      // 微妙纹理噪点
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.03)';
-      for (let y = 0; y < size; y += 3) {
-        for (let x = 0; x < size; x += 4) {
-          if (Math.random() > 0.5) {
-            ctx.fillRect(x, y, 1, 1);
-          }
-        }
-      }
-
-      // 微弱高光
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-      ctx.fillRect(4, 2, 8, 1);
-      ctx.fillRect(20, 10, 6, 1);
     });
   }
 }

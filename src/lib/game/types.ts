@@ -14,12 +14,6 @@ export enum FloorType {
   TILE = 'tile', // 瓷砖
 }
 
-// 墙壁纹理类型
-export enum WallType {
-  BRICK = 'brick', // 砖墙
-  PLASTER = 'plaster', // 粉刷墙
-}
-
 // 瓷砖类型
 export enum TileType {
   EMPTY = 0,
@@ -41,7 +35,6 @@ export interface Wall {
   y: number;
   width: number;
   height: number;
-  wallType?: WallType; // 墙壁纹理类型
 }
 
 // 房屋接口

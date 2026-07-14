@@ -35,21 +35,8 @@ function initTiles(): Tile[] {
   return tiles;
 }
 
-function isInteriorWall(wall: Wall): boolean {
-  return wall.x >= WALL_THICKNESS
-    && wall.y >= WALL_THICKNESS
-    && wall.x + wall.width <= WALL_THICKNESS + HOUSE_WIDTH + WALL_THICKNESS
-    && wall.y + wall.height <= WALL_THICKNESS + HOUSE_HEIGHT + WALL_THICKNESS;
-}
-
 function buildSolidObjects(walls: Wall[]): SolidObject[] {
-  const solids: SolidObject[] = [];
-  for (const w of walls) {
-    if (isInteriorWall(w)) {
-      solids.push({ x: w.x, y: w.y, width: w.width, height: w.height });
-    }
-  }
-  return solids;
+  return walls.map(w => ({ x: w.x, y: w.y, width: w.width, height: w.height }));
 }
 
 function initCats() {

@@ -1,4 +1,4 @@
-import { HOUSE_WIDTH, HOUSE_HEIGHT, WALL_THICKNESS, FloorType, WallType } from '../game/types';
+import { HOUSE_WIDTH, HOUSE_HEIGHT, WALL_THICKNESS, FloorType } from '../game/types';
 import type { House, Wall, Shelter, CatBed, Furniture } from '../game/types';
 
 export interface MapConfigData {
@@ -28,17 +28,17 @@ export const MAP_CONFIG: MapConfigData = {
   },
   walls: [
     // 上边界
-    { x: 0, y: 0, width: canvasWidth, height: WALL_THICKNESS, wallType: WallType.BRICK },
+    { x: 0, y: 0, width: canvasWidth, height: WALL_THICKNESS },
     // 下边界
-    { x: 0, y: canvasHeight - WALL_THICKNESS, width: canvasWidth, height: WALL_THICKNESS, wallType: WallType.BRICK },
+    { x: 0, y: canvasHeight - WALL_THICKNESS, width: canvasWidth, height: WALL_THICKNESS },
     // 左边界
-    { x: 0, y: 0, width: WALL_THICKNESS, height: canvasHeight, wallType: WallType.BRICK },
+    { x: 0, y: 0, width: WALL_THICKNESS, height: canvasHeight },
     // 右边界
-    { x: canvasWidth - WALL_THICKNESS, y: 0, width: WALL_THICKNESS, height: canvasHeight, wallType: WallType.BRICK },
+    { x: canvasWidth - WALL_THICKNESS, y: 0, width: WALL_THICKNESS, height: canvasHeight },
     // 隔断墙上段（门洞上方）
-    { x: DIVIDER_X, y: WALL_THICKNESS, width: WALL_THICKNESS, height: DIVIDER_TOP_HEIGHT, wallType: WallType.PLASTER },
+    { x: DIVIDER_X, y: WALL_THICKNESS, width: WALL_THICKNESS, height: DIVIDER_TOP_HEIGHT },
     // 隔断墙下段（门洞下方）
-    { x: DIVIDER_X, y: WALL_THICKNESS + DIVIDER_TOP_HEIGHT + DOOR_GAP, width: WALL_THICKNESS, height: WALL_THICKNESS, wallType: WallType.PLASTER },
+    { x: DIVIDER_X, y: WALL_THICKNESS + DIVIDER_TOP_HEIGHT + DOOR_GAP, width: WALL_THICKNESS, height: WALL_THICKNESS },
   ],
   shelters: [
     {

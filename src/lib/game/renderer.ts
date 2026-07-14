@@ -1,5 +1,5 @@
 import type { GameState, Tile, Wall, Cat, Shelter, CatBed, Furniture } from './types';
-import { TILE_SIZE, WALL_THICKNESS, HOUSE_WIDTH, HOUSE_HEIGHT, FloorType, WallType } from './types';
+import { TILE_SIZE, WALL_THICKNESS, HOUSE_WIDTH, HOUSE_HEIGHT, FloorType } from './types';
 import { Camera } from './camera';
 import { LuelueCatRenderer, PipiCatRenderer, DefaultCatRenderer, CatRenderer } from './cat-renderer';
 import { TextureManager } from './texture-manager';
@@ -350,13 +350,12 @@ export class GameRenderer {
    * 渲染单个墙体（2.5D 立体效果）
    */
   private renderSingleWallToCtx(ctx: CanvasRenderingContext2D, wall: Wall): void {
-    const wallType = wall.wallType ?? WallType.BRICK;
-    const pattern = this.textureManager.getWallPattern(wallType);
+    const pattern = this.textureManager.getWallPattern();
     const wallHeight = 8;
 
     ctx.fillStyle = pattern
       ? this.darkenPattern(pattern, 0.7)
-      : this.getWallShadowColor(wallType);
+      : '#6B4E2C';
     ctx.fillRect(wall.x, wall.y + wall.height, wall.width, wallHeight);
 
     ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
@@ -365,7 +364,7 @@ export class GameRenderer {
     if (pattern) {
       ctx.fillStyle = pattern;
     } else {
-      ctx.fillStyle = this.getWallFallbackColor(wallType);
+      ctx.fillStyle = '#8B5E3C';
     }
     ctx.fillRect(wall.x, wall.y, wall.width, wall.height);
 
@@ -381,15 +380,6 @@ export class GameRenderer {
     ctx.strokeStyle = '#000000';
     ctx.lineWidth = 2;
     ctx.strokeRect(wall.x, wall.y, wall.width, wall.height);
-
-    // 室内墙踢脚线装饰
-    if (wallType === WallType.PLASTER) {
-      const trimHeight = 4;
-      ctx.fillStyle = '#8B6914';
-      ctx.fillRect(wall.x + 1, wall.y + wall.height - trimHeight, wall.width - 2, trimHeight);
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-      ctx.fillRect(wall.x + 1, wall.y + wall.height - trimHeight, wall.width - 2, 1);
-    }
   }
 
   /**
@@ -428,25 +418,7 @@ export class GameRenderer {
     }
   }
 
-  /**
-   * 墙壁 fallback 颜色
-   */
-  private getWallFallbackColor(wallType: WallType): string {
-    switch (wallType) {
-      case WallType.BRICK: return '#8B5E3C';
-      case WallType.PLASTER: return '#F5F0E8';
-    }
-  }
 
-  /**
-   * 墙壁阴影 fallback 颜色
-   */
-  private getWallShadowColor(wallType: WallType): string {
-    switch (wallType) {
-      case WallType.BRICK: return '#6B4E2C';
-      case WallType.PLASTER: return '#D5D0C8';
-    }
-  }
 
   /**
    * 创建变暗的 Pattern（用于侧面阴影），带缓存
