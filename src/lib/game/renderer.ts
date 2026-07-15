@@ -1,9 +1,10 @@
-import type { GameState, Tile, Wall, Cat, Shelter, CatBed, Furniture } from './types';
-import { TILE_SIZE, WALL_THICKNESS, HOUSE_WIDTH, HOUSE_HEIGHT, FloorType } from './types';
+import type { GameState, Tile, Cat, Shelter, CatBed, Furniture } from './types';
+import { TILE_SIZE, MAP_WIDTH, MAP_HEIGHT, TileType, FloorType } from './types';
 import { Camera } from './camera';
 import { LuelueCatRenderer, PipiCatRenderer, DefaultCatRenderer, CatRenderer } from './cat-renderer';
 import { TextureManager } from './texture-manager';
 import { getTimeOverlayColor } from './time-system';
+import type { TileMap } from './tile-map';
 
 /**
  * 游戏渲染器
@@ -39,6 +40,13 @@ export class GameRenderer {
       ['luelue', new LuelueCatRenderer(ctx)],
       ['pipi', new PipiCatRenderer(ctx)],
     ]);
+  }
+
+  /**
+   * 标记静态层需要重绘
+   */
+  markStaticDirty(): void {
+    this.staticDirty = true;
   }
 
   /**
@@ -83,11 +91,78 @@ export class GameRenderer {
     const offCtx = this.staticCanvas.getContext('2d')!;
     offCtx.clearRect(0, 0, this.staticCanvas.width, this.staticCanvas.height);
 
-    this.renderTilesToCtx(offCtx, state.tiles);
+    // 1. 渲染 tile 地图（地板 + 墙壁 + 空白）
+    this.renderTileMap(offCtx, state.tileMap);
+
+    // 2. 渲染物体层
     this.renderSheltersToCtx(offCtx, state.shelters);
     this.renderCatBedsToCtx(offCtx, state.catBeds);
     this.renderFurnituresToCtx(offCtx, state.furnitures);
-    this.renderWallsToCtx(offCtx, state.walls);
+  }
+
+  /**
+   * 渲染 TileMap：EMPTY / FLOOR / WALL
+   */
+  private renderTileMap(ctx: CanvasRenderingContext2D, tileMap: TileMap): void {
+    const wallPattern = this.textureManager.getWallPattern();
+
+    tileMap.forEach((tile, col, row) => {
+      const x = tile.x;
+      const y = tile.y;
+
+      switch (tile.type) {
+        case TileType.EMPTY:
+          // 空白区域 - 浅灰色背景
+          ctx.fillStyle = '#E8E4DE';
+          ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+          break;
+
+        case TileType.FLOOR: {
+          const floorType = tile.floorType ?? FloorType.WOOD;
+          const pattern = this.textureManager.getFloorPattern(floorType);
+          if (pattern) {
+            ctx.fillStyle = pattern;
+          } else {
+            ctx.fillStyle = this.getFloorFallbackColor(floorType);
+          }
+          ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+          break;
+        }
+
+        case TileType.WALL: {
+          // 墙壁 - 砖纹理 + 2.5D 效果
+          if (wallPattern) {
+            ctx.fillStyle = wallPattern;
+          } else {
+            ctx.fillStyle = '#8B5E3C';
+          }
+          ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+
+          // 2.5D 阴影底边
+          const shadowPattern = wallPattern
+            ? this.darkenPattern(wallPattern, 0.7)
+            : null;
+          ctx.fillStyle = shadowPattern ?? '#6B4E2C';
+          ctx.fillRect(x, y + TILE_SIZE, TILE_SIZE, 6);
+
+          // 顶部高光
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+          ctx.fillRect(x, y, TILE_SIZE, 2);
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
+          ctx.fillRect(x, y, 2, TILE_SIZE);
+
+          // 底部暗边
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.12)';
+          ctx.fillRect(x, y + TILE_SIZE - 2, TILE_SIZE, 2);
+
+          // 边框
+          ctx.strokeStyle = '#000000';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(x + 0.5, y + 0.5, TILE_SIZE - 1, TILE_SIZE - 1);
+          break;
+        }
+      }
+    });
   }
 
   /**
@@ -127,62 +202,18 @@ export class GameRenderer {
     this.ctx.lineWidth = 3 / this.camera.zoom;
     this.ctx.strokeRect(canvasRect.x, canvasRect.y, canvasWidth, canvasHeight);
 
-    const mapSizeX = HOUSE_WIDTH + WALL_THICKNESS * 2;
-    const mapSizeY = HOUSE_HEIGHT + WALL_THICKNESS * 2;
+    // 地图边界
     this.ctx.fillStyle = 'rgba(0, 0, 255, 0.15)';
-    this.ctx.fillRect(0, 0, mapSizeX, mapSizeY);
+    this.ctx.fillRect(0, 0, MAP_WIDTH, MAP_HEIGHT);
 
     this.ctx.strokeStyle = '#0066FF';
     this.ctx.lineWidth = 3 / this.camera.zoom;
-    this.ctx.strokeRect(0, 0, mapSizeX, mapSizeY);
-
-    this.ctx.fillStyle = 'rgba(0, 255, 0, 0.15)';
-    this.ctx.fillRect(WALL_THICKNESS, WALL_THICKNESS, HOUSE_WIDTH, HOUSE_HEIGHT);
-
-    this.ctx.strokeStyle = '#00CC00';
-    this.ctx.lineWidth = 3 / this.camera.zoom;
-    this.ctx.strokeRect(WALL_THICKNESS, WALL_THICKNESS, HOUSE_WIDTH, HOUSE_HEIGHT);
-  }
-
-  /**
-   * 渲染瓷砖（地板纹理）
-   */
-  private renderTiles(tiles: Tile[]): void {
-    this.renderTilesToCtx(this.ctx, tiles);
-  }
-
-  private renderTilesToCtx(ctx: CanvasRenderingContext2D, tiles: Tile[]): void {
-    const tilesByType = new Map<FloorType, Tile[]>();
-
-    for (const tile of tiles) {
-      const floorType = tile.floorType ?? FloorType.WOOD;
-      if (!tilesByType.has(floorType)) {
-        tilesByType.set(floorType, []);
-      }
-      tilesByType.get(floorType)!.push(tile);
-    }
-
-    for (const [floorType, typeTiles] of tilesByType) {
-      const pattern = this.textureManager.getFloorPattern(floorType);
-      if (pattern) {
-        ctx.fillStyle = pattern;
-      } else {
-        ctx.fillStyle = this.getFloorFallbackColor(floorType);
-      }
-
-      for (const tile of typeTiles) {
-        ctx.fillRect(tile.x, tile.y, TILE_SIZE, TILE_SIZE);
-      }
-    }
+    this.ctx.strokeRect(0, 0, MAP_WIDTH, MAP_HEIGHT);
   }
 
   /**
    * 渲染庇护所（半透明蓝色标记）
    */
-  private renderShelters(shelters: Shelter[]): void {
-    this.renderSheltersToCtx(this.ctx, shelters);
-  }
-
   private renderSheltersToCtx(ctx: CanvasRenderingContext2D, shelters: Shelter[]): void {
     for (const shelter of shelters) {
       ctx.fillStyle = 'rgba(66, 135, 245, 0.2)';
@@ -208,10 +239,6 @@ export class GameRenderer {
   /**
    * 渲染猫窝（半透明绿色标记）
    */
-  private renderCatBeds(catBeds: CatBed[]): void {
-    this.renderCatBedsToCtx(this.ctx, catBeds);
-  }
-
   private renderCatBedsToCtx(ctx: CanvasRenderingContext2D, catBeds: CatBed[]): void {
     for (const bed of catBeds) {
       ctx.fillStyle = 'rgba(76, 175, 80, 0.2)';
@@ -334,55 +361,6 @@ export class GameRenderer {
   }
 
   /**
-   * 渲染墙体（纹理 + 2.5D 立体效果）
-   */
-  private renderWalls(walls: Wall[]): void {
-    this.renderWallsToCtx(this.ctx, walls);
-  }
-
-  private renderWallsToCtx(ctx: CanvasRenderingContext2D, walls: Wall[]): void {
-    for (const wall of walls) {
-      this.renderSingleWallToCtx(ctx, wall);
-    }
-  }
-
-  /**
-   * 渲染单个墙体（2.5D 立体效果）
-   */
-  private renderSingleWallToCtx(ctx: CanvasRenderingContext2D, wall: Wall): void {
-    const pattern = this.textureManager.getWallPattern();
-    const wallHeight = 8;
-
-    ctx.fillStyle = pattern
-      ? this.darkenPattern(pattern, 0.7)
-      : '#6B4E2C';
-    ctx.fillRect(wall.x, wall.y + wall.height, wall.width, wallHeight);
-
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-    ctx.fillRect(wall.x + wall.width - 2, wall.y + wall.height, 2, wallHeight);
-
-    if (pattern) {
-      ctx.fillStyle = pattern;
-    } else {
-      ctx.fillStyle = '#8B5E3C';
-    }
-    ctx.fillRect(wall.x, wall.y, wall.width, wall.height);
-
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
-    ctx.fillRect(wall.x, wall.y, wall.width, 3);
-
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
-    ctx.fillRect(wall.x, wall.y, 2, wall.height);
-
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
-    ctx.fillRect(wall.x, wall.y + wall.height - 2, wall.width, 2);
-
-    ctx.strokeStyle = '#000000';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(wall.x, wall.y, wall.width, wall.height);
-  }
-
-  /**
    * 渲染猫咪
    */
   private renderCats(cats: Cat[]): void {
@@ -417,8 +395,6 @@ export class GameRenderer {
       case FloorType.TILE: return '#F0EDE8';
     }
   }
-
-
 
   /**
    * 创建变暗的 Pattern（用于侧面阴影），带缓存

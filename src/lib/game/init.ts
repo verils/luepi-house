@@ -1,86 +1,83 @@
 import {
+  MAP_COLS,
+  MAP_ROWS,
+  MAP_WIDTH,
+  MAP_HEIGHT,
   TILE_SIZE,
-  HOUSE_WIDTH,
-  HOUSE_HEIGHT,
-  WALL_THICKNESS,
-  TileType,
   type GameState,
-  type Tile,
   type MapConfig,
   type SolidObject,
-  type Wall,
 } from './types';
-import { MAP_CONFIG } from '../config/map';
+import {
+  createDefaultLayout,
+  computeHouseBounds,
+  createDefaultFurnitures,
+  createDefaultShelters,
+  createDefaultCatBeds,
+  ROOMS,
+} from '../config/map';
 import { CAT_CONFIGS, createCatFromConfig } from '../config/cats';
 import { createTimeState } from './time-system';
 import { createEventLogState } from './event-log';
 import { createWeatherState } from './weather-system';
+import { TileMap } from './tile-map';
 
-function initTiles(): Tile[] {
-  const tiles: Tile[] = [];
-  const cols = HOUSE_WIDTH / TILE_SIZE;
-  const rows = HOUSE_HEIGHT / TILE_SIZE;
+function initCats(tileMap: TileMap) {
+  // 将猫放在客厅区域的中间位置
+  const T = TILE_SIZE;
+  const livingRoomCenterX = 30 * T;
+  const livingRoomCenterY = 12 * T;
 
-  for (let row = 0; row < rows; row++) {
-    for (let col = 0; col < cols; col++) {
-      tiles.push({
-        x: MAP_CONFIG.house.x + col * TILE_SIZE,
-        y: MAP_CONFIG.house.y + row * TILE_SIZE,
-        type: TileType.FLOOR,
-        floorType: MAP_CONFIG.defaultFloor,
-      });
-    }
-  }
-
-  return tiles;
-}
-
-function buildSolidObjects(walls: Wall[]): SolidObject[] {
-  return walls.map(w => ({ x: w.x, y: w.y, width: w.width, height: w.height }));
-}
-
-function initCats() {
-  const livingRoomX = WALL_THICKNESS + 320 + WALL_THICKNESS;
-  const livingRoomWidth = HOUSE_WIDTH - 320 - WALL_THICKNESS;
-  const positions = [
-    { x: livingRoomX + livingRoomWidth / 3, y: WALL_THICKNESS + HOUSE_HEIGHT / 2 },
-    { x: livingRoomX + (livingRoomWidth * 2) / 3, y: WALL_THICKNESS + HOUSE_HEIGHT / 2 },
-  ];
-
-  return CAT_CONFIGS.map((config, i) => createCatFromConfig(config, positions[i].x, positions[i].y));
+  return CAT_CONFIGS.map((config, i) =>
+    createCatFromConfig(
+      config,
+      livingRoomCenterX + (i - 0.5) * 4 * T,
+      livingRoomCenterY
+    )
+  );
 }
 
 export function initGameState(): GameState {
+  const tileMap = createDefaultLayout();
+  const house = computeHouseBounds(tileMap);
+  const furnitures = createDefaultFurnitures();
+  const shelters = createDefaultShelters();
+  const catBeds = createDefaultCatBeds();
+
   const map: MapConfig = {
-    width: MAP_CONFIG.house.width + MAP_CONFIG.house.x * 2,
-    height: MAP_CONFIG.house.height + MAP_CONFIG.house.y * 2,
-    house: MAP_CONFIG.house,
-    walls: MAP_CONFIG.walls,
-    shelters: MAP_CONFIG.shelters,
-    catBeds: MAP_CONFIG.catBeds,
-    furnitures: MAP_CONFIG.furnitures,
-    defaultFloor: MAP_CONFIG.defaultFloor,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    house,
+    rooms: ROOMS,
+    shelters,
+    catBeds,
+    furnitures,
+    defaultFloor: tileMap.getTile(
+      Math.floor(MAP_COLS / 2),
+      Math.floor(MAP_ROWS / 2)
+    )?.floorType ?? 'wood' as any,
   };
 
-  const tiles = initTiles();
-  const cats = initCats();
+  const cats = initCats(tileMap);
   const time = createTimeState();
   const weather = createWeatherState();
   const eventLog = createEventLogState();
-  const solidObjects = [
-    ...buildSolidObjects(map.walls),
-    ...map.furnitures,
+
+  // 碰撞对象 = 合并的墙壁矩形 + 家具
+  const wallRects = tileMap.getWallRects();
+  const solidObjects: SolidObject[] = [
+    ...wallRects,
+    ...furnitures,
   ];
 
   return {
     map,
-    house: map.house,
-    walls: map.walls,
+    house,
+    tileMap,
     cats,
-    tiles,
-    shelters: map.shelters,
-    catBeds: map.catBeds,
-    furnitures: map.furnitures,
+    shelters,
+    catBeds,
+    furnitures,
     solidObjects,
     time,
     weather,

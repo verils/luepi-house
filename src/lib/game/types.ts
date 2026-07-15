@@ -1,9 +1,9 @@
 // 游戏常量定义
 export const TILE_SIZE = 32; // 瓷砖大小 32x32px
-export const WALL_THICKNESS = 24; // 墙体厚度 24px
-export const HOUSE_SIZE = 640; // 房屋大小 640x640px（向后兼容）
-export const HOUSE_WIDTH = 960; // 房屋总宽度（含新房间）
-export const HOUSE_HEIGHT = 640; // 房屋总高度
+export const MAP_COLS = 40; // 地图列数
+export const MAP_ROWS = 30; // 地图行数
+export const MAP_WIDTH = MAP_COLS * TILE_SIZE; // 地图像素宽度 1280
+export const MAP_HEIGHT = MAP_ROWS * TILE_SIZE; // 地图像素高度 960
 export const CAT_VISUAL_SIZE = 32; // 猫咪视觉尺寸 32x32px（标准Sprite尺寸）
 export const CAT_COLLISION_RADIUS = 16; // 猫咪碰撞半径 16px
 
@@ -26,7 +26,16 @@ export interface Tile {
   x: number;
   y: number;
   type: TileType;
-  floorType?: FloorType; // 地板纹理类型
+  floorType?: FloorType; // 地板纹理类型（仅 FLOOR 类型有意义）
+  roomId?: string; // 所属房间 ID
+}
+
+// 房间接口
+export interface Room {
+  id: string;
+  name: string;
+  floorType: FloorType;
+  color?: string; // 房间主题色（用于渲染叠加）
 }
 
 // 墙体接口
@@ -84,8 +93,8 @@ export interface Furniture extends SolidObject {
 export interface MapConfig {
   width: number; // 地图总宽度
   height: number; // 地图总高度
-  house: House; // 房屋区域
-  walls: Wall[]; // 所有墙体（边界墙 + 内部墙）
+  house: House; // 房屋区域（用于摄像机居中，不控制布局）
+  rooms: Room[]; // 房间列表
   shelters: Shelter[]; // 庇护所列表
   catBeds: CatBed[]; // 猫窝列表
   furnitures: Furniture[]; // 家具列表
@@ -176,14 +185,13 @@ export interface ChasePair {
 // 游戏状态接口
 export interface GameState {
   map: MapConfig; // 地图配置
-  house: House;
-  walls: Wall[];
+  house: House; // 房屋边界（用于摄像机居中）
+  tileMap: import('./tile-map').TileMap; // 统一 tile 地图
   cats: Cat[];
-  tiles: Tile[];
   shelters: Shelter[];
   catBeds: CatBed[];
   furnitures: Furniture[]; // 家具列表
-  solidObjects: SolidObject[]; // 所有可碰撞对象（内部墙 + 家具）
+  solidObjects: SolidObject[]; // 所有可碰撞对象（墙壁碰撞 + 家具）
   time: import('./time-system').TimeState; // 时间状态
   weather: import('./weather-system').WeatherState; // 天气状态
   eventLog: import('./event-log').EventLogState; // 事件日志

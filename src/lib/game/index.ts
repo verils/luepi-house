@@ -1,4 +1,5 @@
 export * from './types';
+export * from './tile-map';
 export * from './init';
 export * from './renderer';
 export * from './camera';

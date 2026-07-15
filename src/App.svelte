@@ -2,7 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { updateCatState, resolveIntents } from './lib/game';
   import type { GameRenderer, Camera, StateContext, GameState, Cat, CatIntent } from './lib/game';
-  import { HOUSE_WIDTH, HOUSE_HEIGHT, WALL_THICKNESS } from './lib/game';
+  import { MAP_WIDTH, MAP_HEIGHT } from './lib/game';
   import { updateTime, cycleTimeSpeed, formatGameTime } from './lib/game';
   import { updateWeather, getWeatherName } from './lib/game';
   import { logSystemEvent } from './lib/game';
@@ -51,8 +51,8 @@
     }
     const viewportCenterX = innerWidth / 2;
     const viewportCenterY = innerHeight / 2;
-    const houseCenterX = (HOUSE_WIDTH + WALL_THICKNESS * 2) / 2;
-    const houseCenterY = (HOUSE_HEIGHT + WALL_THICKNESS * 2) / 2;
+    const houseCenterX = MAP_WIDTH / 2;
+    const houseCenterY = MAP_HEIGHT / 2;
     camera.x = viewportCenterX - houseCenterX * camera.zoom;
     camera.y = viewportCenterY - houseCenterY * camera.zoom;
   }

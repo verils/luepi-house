@@ -1,5 +1,5 @@
 import type { Cat, CatActionState, CatBed, CatIntent, Shelter, SolidObject, Furniture, House } from './types';
-import { HOUSE_WIDTH, HOUSE_HEIGHT, WALL_THICKNESS } from './types';
+import { MAP_WIDTH, MAP_HEIGHT } from './types';
 import { calculateBehaviorWeight, getChaseReverseChance, getIdleDurationModifier } from './personality';
 import {
   applyMoodEvent,
@@ -439,13 +439,16 @@ function enterGroomingState(cat: Cat): void {
 
 function enterMovingState(cat: Cat, ctx?: StateContext): void {
   const margin = cat.visualWidth;
-  const houseW = ctx?.house.width ?? HOUSE_WIDTH;
-  const houseH = ctx?.house.height ?? HOUSE_HEIGHT;
+  const house = ctx?.house;
+  const houseX = house?.x ?? 0;
+  const houseY = house?.y ?? 0;
+  const houseW = house?.width ?? MAP_WIDTH;
+  const houseH = house?.height ?? MAP_HEIGHT;
   let attempts = 0;
   let tx: number, ty: number;
   do {
-    tx = WALL_THICKNESS + margin + Math.random() * (houseW - margin * 2);
-    ty = WALL_THICKNESS + margin + Math.random() * (houseH - margin * 2);
+    tx = houseX + margin + Math.random() * (houseW - margin * 2);
+    ty = houseY + margin + Math.random() * (houseH - margin * 2);
     attempts++;
   } while (ctx && isInsideObject(tx, ty, ctx) && attempts < 5);
 
@@ -537,16 +540,20 @@ function moveToward(cat: Cat, targetX: number, targetY: number, speed: number, c
 function clampToHouseX(x: number, cat: Cat, house?: House): number {
   const halfWidth = cat.visualWidth / 2;
   const clearance = Math.max(cat.collisionRadius, halfWidth);
-  const minX = WALL_THICKNESS + clearance - halfWidth;
-  const maxX = WALL_THICKNESS + (house?.width ?? HOUSE_WIDTH) - clearance - halfWidth;
+  const houseX = house?.x ?? 0;
+  const houseW = house?.width ?? MAP_WIDTH;
+  const minX = houseX + clearance - halfWidth;
+  const maxX = houseX + houseW - clearance - halfWidth;
   return Math.max(minX, Math.min(x, maxX));
 }
 
 function clampToHouseY(y: number, cat: Cat, house?: House): number {
   const halfHeight = cat.visualHeight / 2;
   const clearance = Math.max(cat.collisionRadius, halfHeight);
-  const minY = WALL_THICKNESS + clearance - halfHeight;
-  const maxY = WALL_THICKNESS + (house?.height ?? HOUSE_HEIGHT) - clearance - halfHeight;
+  const houseY = house?.y ?? 0;
+  const houseH = house?.height ?? MAP_HEIGHT;
+  const minY = houseY + clearance - halfHeight;
+  const maxY = houseY + houseH - clearance - halfHeight;
   return Math.max(minY, Math.min(y, maxY));
 }
 
