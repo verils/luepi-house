@@ -1,11 +1,26 @@
 // 游戏常量定义
-export const TILE_SIZE = 32; // 瓷砖大小 32x32px
-export const MAP_COLS = 22; // 地图列数
-export const MAP_ROWS = 20; // 地图行数
-export const MAP_WIDTH = MAP_COLS * TILE_SIZE; // 地图像素宽度 704
-export const MAP_HEIGHT = MAP_ROWS * TILE_SIZE; // 地图像素高度 640
-export const CAT_VISUAL_SIZE = 32; // 猫咪视觉尺寸 32x32px（标准Sprite尺寸）
-export const CAT_COLLISION_RADIUS = 16; // 猫咪碰撞半径 16px
+
+// === 公制单位（游戏逻辑） ===
+export const CELL_SIZE = 0.25; // 网格单元尺寸（米），与猫尺寸一致
+export const CAT_SIZE = 0.25;  // 猫占地尺寸（米）= 25cm × 25cm
+
+// === 渲染单位 ===
+export const TILE_SIZE = 32;   // 每格渲染像素数
+export const PIXELS_PER_METER = TILE_SIZE / CELL_SIZE; // 128 px/m
+
+// === 房屋网格 ===
+export const MAP_COLS = 42;    // 42格 × 0.25m = 10.5m
+export const MAP_ROWS = 34;    // 34格 × 0.25m = 8.5m
+export const MAP_WIDTH = MAP_COLS * TILE_SIZE;  // 1344px
+export const MAP_HEIGHT = MAP_ROWS * TILE_SIZE; // 1088px
+
+// === 猫渲染尺寸（像素） ===
+export const CAT_VISUAL_SIZE = CAT_SIZE * PIXELS_PER_METER; // 32px
+export const CAT_COLLISION_RADIUS = (CAT_SIZE / 2) * PIXELS_PER_METER; // 16px
+
+// 坐标转换辅助
+export const metersToPixels = (m: number): number => m * PIXELS_PER_METER;
+export const pixelsToMeters = (px: number): number => px / PIXELS_PER_METER;
 
 // 地板纹理类型
 export enum FloorType {

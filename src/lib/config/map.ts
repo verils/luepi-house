@@ -26,27 +26,28 @@ export const ROOMS: Room[] = [
 /**
  * 创建默认的 2房2厅+厨房 布局
  *
- * 网格: 22x20, L形不规则外形
+ * 网格: 42×34 格 (10.5m × 8.5m)，L形不规则外形
+ * 房屋面积 ≈ 81 m²
  *
- * 上层 (rows 0-10):
- *   卧室1: cols 1-9, rows 1-5       CARPET
- *   卧室2: cols 11-20, rows 1-5     CARPET
- *   走廊:  cols 1-9, rows 7-10      WOOD
- *   客厅:  cols 11-20, rows 7-10    WOOD
+ * 上层 (rows 0-27, 全宽42格):
+ *   卧室1: cols 1-18, rows 1-9      CARPET  (4.5m×2.25m ≈ 10 m²)
+ *   卧室2: cols 20-40, rows 1-9     CARPET  (5.25m×2.25m ≈ 12 m²)
+ *   走廊:  cols 1-18, rows 11-15    WOOD    (4.5m×1.25m ≈ 6 m²)
+ *   客厅:  cols 20-40, rows 11-15   WOOD    (5.25m×1.25m ≈ 7 m²)
+ *   小厅:  cols 20-40, rows 17-27   WOOD    (5.25m×2.75m ≈ 14 m²)
  *
- * 下层 (rows 12-18):
- *   厨房:  cols 1-9, rows 12-18     TILE
- *   小厅:  cols 11-20, rows 12-17   WOOD
+ * 下层 (rows 17-33, 左半19格):
+ *   厨房:  cols 1-18, rows 17-32    TILE    (4.5m×4m ≈ 18 m²)
  *
- * L形轮廓: 上层22宽(rows 0-18 右侧到col 21)，下层仅到col 10(row 19)
+ * L形轮廓: 上层全宽(rows 0-28 右侧到col 41)，下层仅到col 18(row 33)
  *
- * 门洞:
- *   卧室1→走廊: col 4-5, row 6
- *   卧室2→客厅: col 14-15, row 6
- *   走廊→客厅: col 10, rows 8-9
- *   走廊→厨房: col 4-5, row 11
- *   客厅→小厅: col 14-15, row 11
- *   厨房→小厅: col 10, rows 14-15
+ * 门洞 (3格宽 = 0.75m):
+ *   卧室1→走廊: cols 7-9, row 10
+ *   卧室2→客厅: cols 27-29, row 10
+ *   走廊↔客厅: col 19, rows 12-14
+ *   走廊→厨房: cols 7-9, row 16
+ *   客厅→小厅: cols 27-29, row 16
+ *   厨房↔小厅: col 19, rows 22-24
  */
 export function createDefaultLayout(): TileMap {
   const map = new TileMap(MAP_COLS, MAP_ROWS);
@@ -66,77 +67,77 @@ export function createDefaultLayout(): TileMap {
 
   // === 1. 外边界墙（L形） ===
 
-  // 上边界: row 0, cols 0-21
-  fillRect(0, 0, 21, 0, TileType.WALL);
+  // 上边界
+  fillRect(0, 0, 41, 0, TileType.WALL);
 
-  // 左边界: col 0, rows 0-19
-  fillRect(0, 0, 0, 19, TileType.WALL);
+  // 左边界
+  fillRect(0, 0, 0, 33, TileType.WALL);
 
-  // 右边界: col 21, rows 0-18
-  fillRect(21, 0, 21, 18, TileType.WALL);
+  // 右边界（上层到row 28）
+  fillRect(41, 0, 41, 28, TileType.WALL);
 
-  // 厨房底边: row 19, cols 0-10
-  fillRect(0, 19, 10, 19, TileType.WALL);
+  // 小厅底边（L形转折）
+  fillRect(19, 28, 41, 28, TileType.WALL);
 
-  // 小厅底边: row 18, cols 10-21
-  fillRect(10, 18, 21, 18, TileType.WALL);
+  // 厨房底边
+  fillRect(0, 33, 18, 33, TileType.WALL);
 
-  // === 2. 内部墙体（全部厚度1） ===
+  // === 2. 内部墙体（全部厚度1格） ===
 
-  // 卧室分隔墙: col 10, rows 0-6
-  fillRect(10, 0, 10, 6, TileType.WALL);
+  // 卧室分隔墙
+  fillRect(19, 0, 19, 10, TileType.WALL);
 
-  // 卧室下方水平墙: row 6, cols 1-20
-  fillRect(1, 6, 20, 6, TileType.WALL);
+  // 卧室下方水平墙
+  fillRect(1, 10, 40, 10, TileType.WALL);
 
-  // 走廊/客厅分隔墙: col 10, rows 7-10
-  fillRect(10, 7, 10, 10, TileType.WALL);
+  // 走廊/客厅分隔墙
+  fillRect(19, 11, 19, 16, TileType.WALL);
 
-  // 走廊/客厅下方水平墙: row 11, cols 1-20
-  fillRect(1, 11, 20, 11, TileType.WALL);
+  // 走廊/客厅下方水平墙
+  fillRect(1, 16, 40, 16, TileType.WALL);
 
-  // 厨房/小厅分隔墙: col 10, rows 12-18
-  fillRect(10, 12, 10, 18, TileType.WALL);
+  // 厨房/小厅分隔墙（延伸到L形底部）
+  fillRect(19, 17, 19, 28, TileType.WALL);
 
-  // === 3. 门洞 ===
+  // === 3. 门洞（3格宽） ===
 
-  // 卧室1 → 走廊: col 4-5, row 6
-  fillRect(4, 6, 5, 6, TileType.FLOOR, FloorType.WOOD, ROOM_IDS.CORRIDOR);
+  // 卧室1 → 走廊
+  fillRect(7, 10, 9, 10, TileType.FLOOR, FloorType.WOOD, ROOM_IDS.CORRIDOR);
 
-  // 卧室2 → 客厅: col 14-15, row 6
-  fillRect(14, 6, 15, 6, TileType.FLOOR, FloorType.WOOD, ROOM_IDS.LIVING);
+  // 卧室2 → 客厅
+  fillRect(27, 10, 29, 10, TileType.FLOOR, FloorType.WOOD, ROOM_IDS.LIVING);
 
-  // 走廊 ↔ 客厅: col 10, rows 8-9
-  fillRect(10, 8, 10, 9, TileType.FLOOR, FloorType.WOOD, ROOM_IDS.LIVING);
+  // 走廊 ↔ 客厅
+  fillRect(19, 12, 19, 14, TileType.FLOOR, FloorType.WOOD, ROOM_IDS.LIVING);
 
-  // 走廊 → 厨房: col 4-5, row 11
-  fillRect(4, 11, 5, 11, TileType.FLOOR, FloorType.TILE, ROOM_IDS.KITCHEN);
+  // 走廊 → 厨房
+  fillRect(7, 16, 9, 16, TileType.FLOOR, FloorType.TILE, ROOM_IDS.KITCHEN);
 
-  // 客厅 → 小厅: col 14-15, row 11
-  fillRect(14, 11, 15, 11, TileType.FLOOR, FloorType.WOOD, ROOM_IDS.HALL);
+  // 客厅 → 小厅
+  fillRect(27, 16, 29, 16, TileType.FLOOR, FloorType.WOOD, ROOM_IDS.HALL);
 
-  // 厨房 ↔ 小厅: col 10, rows 14-15
-  fillRect(10, 14, 10, 15, TileType.FLOOR, FloorType.WOOD, ROOM_IDS.HALL);
+  // 厨房 ↔ 小厅
+  fillRect(19, 22, 19, 24, TileType.FLOOR, FloorType.WOOD, ROOM_IDS.HALL);
 
   // === 4. 房间地板 ===
 
-  // 卧室1: cols 1-9, rows 1-5
-  fillRect(1, 1, 9, 5, TileType.FLOOR, FloorType.CARPET, ROOM_IDS.BEDROOM1);
+  // 卧室1: 4.5m × 2.25m
+  fillRect(1, 1, 18, 9, TileType.FLOOR, FloorType.CARPET, ROOM_IDS.BEDROOM1);
 
-  // 卧室2: cols 11-20, rows 1-5
-  fillRect(11, 1, 20, 5, TileType.FLOOR, FloorType.CARPET, ROOM_IDS.BEDROOM2);
+  // 卧室2: 5.25m × 2.25m
+  fillRect(20, 1, 40, 9, TileType.FLOOR, FloorType.CARPET, ROOM_IDS.BEDROOM2);
 
-  // 走廊: cols 1-9, rows 7-10
-  fillRect(1, 7, 9, 10, TileType.FLOOR, FloorType.WOOD, ROOM_IDS.CORRIDOR);
+  // 走廊: 4.5m × 1.25m
+  fillRect(1, 11, 18, 15, TileType.FLOOR, FloorType.WOOD, ROOM_IDS.CORRIDOR);
 
-  // 客厅: cols 11-20, rows 7-10
-  fillRect(11, 7, 20, 10, TileType.FLOOR, FloorType.WOOD, ROOM_IDS.LIVING);
+  // 客厅: 5.25m × 1.25m
+  fillRect(20, 11, 40, 15, TileType.FLOOR, FloorType.WOOD, ROOM_IDS.LIVING);
 
-  // 厨房: cols 1-9, rows 12-18
-  fillRect(1, 12, 9, 18, TileType.FLOOR, FloorType.TILE, ROOM_IDS.KITCHEN);
+  // 厨房: 4.5m × 4m
+  fillRect(1, 17, 18, 32, TileType.FLOOR, FloorType.TILE, ROOM_IDS.KITCHEN);
 
-  // 小厅: cols 11-20, rows 12-17
-  fillRect(11, 12, 20, 17, TileType.FLOOR, FloorType.WOOD, ROOM_IDS.HALL);
+  // 小厅: 5.25m × 2.75m
+  fillRect(20, 17, 40, 27, TileType.FLOOR, FloorType.WOOD, ROOM_IDS.HALL);
 
   return map;
 }
@@ -146,18 +147,19 @@ export function computeHouseBounds(tileMap: TileMap): House {
   return tileMap.getFloorBounds();
 }
 
-// 默认家具布局（基于新地图坐标）
+// 默认家具布局
 export function createDefaultFurnitures(): Furniture[] {
   const T = TILE_SIZE;
   return [
-    // 卧室1 家具
+    // 卧室1 家具 (cols 1-18, rows 1-9)
     { id: 'bookshelf', name: '书架', x: 2 * T, y: 1 * T, width: 4 * T, height: T, wallPlaced: true },
-    { id: 'desk', name: '书桌', x: 6 * T, y: 1 * T, width: 3 * T, height: T, wallPlaced: true },
-    { id: 'chair', name: '椅子', x: 5 * T, y: 3 * T, width: T, height: T, wallPlaced: false },
-    // 客厅家具
-    { id: 'sofa', name: '沙发', x: 15 * T, y: 8 * T, width: 4 * T, height: 2 * T, wallPlaced: true },
-    { id: 'coffeeTable', name: '茶几', x: 12 * T, y: 8 * T, width: 2 * T, height: T, wallPlaced: false },
-    { id: 'catbox', name: '猫箱', x: 12 * T, y: 14 * T, width: 2 * T, height: 2 * T, wallPlaced: false },
+    { id: 'desk', name: '书桌', x: 8 * T, y: 1 * T, width: 3 * T, height: T, wallPlaced: true },
+    { id: 'chair', name: '椅子', x: 6 * T, y: 5 * T, width: T, height: T, wallPlaced: false },
+    // 客厅家具 (cols 20-40, rows 11-15)
+    { id: 'sofa', name: '沙发', x: 30 * T, y: 12 * T, width: 4 * T, height: 2 * T, wallPlaced: true },
+    { id: 'coffeeTable', name: '茶几', x: 25 * T, y: 12 * T, width: 2 * T, height: T, wallPlaced: false },
+    // 厨房家具 (cols 1-18, rows 17-32)
+    { id: 'catbox', name: '猫箱', x: 5 * T, y: 25 * T, width: 2 * T, height: 2 * T, wallPlaced: false },
   ];
 }
 
@@ -165,8 +167,8 @@ export function createDefaultFurnitures(): Furniture[] {
 export function createDefaultShelters(): Shelter[] {
   const T = TILE_SIZE;
   return [
-    { id: 'box', name: '纸箱', x: 2 * T, y: 3 * T, width: 2 * T, height: 2 * T },
-    { id: 'tunnel', name: '隧道', x: 16 * T, y: 14 * T, width: 3 * T, height: 2 * T },
+    { id: 'box', name: '纸箱', x: 3 * T, y: 3 * T, width: 2 * T, height: 2 * T },
+    { id: 'tunnel', name: '隧道', x: 30 * T, y: 22 * T, width: 3 * T, height: 2 * T },
   ];
 }
 
@@ -174,6 +176,6 @@ export function createDefaultShelters(): Shelter[] {
 export function createDefaultCatBeds(): CatBed[] {
   const T = TILE_SIZE;
   return [
-    { id: 'bed1', name: '猫窝', x: 14 * T, y: 14 * T, width: 2 * T, height: 2 * T },
+    { id: 'bed1', name: '猫窝', x: 25 * T, y: 22 * T, width: 2 * T, height: 2 * T },
   ];
 }

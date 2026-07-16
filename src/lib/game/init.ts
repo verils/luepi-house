@@ -23,10 +23,10 @@ import { createWeatherState } from './weather-system';
 import { TileMap } from './tile-map';
 
 function initCats(tileMap: TileMap) {
-  // 将猫放在客厅区域的中间位置
+  // 将猫放在客厅区域的中间位置 (cols 20-40, rows 11-15)
   const T = TILE_SIZE;
-  const livingRoomCenterX = 15 * T;
-  const livingRoomCenterY = 9 * T;
+  const livingRoomCenterX = 30 * T;
+  const livingRoomCenterY = 13 * T;
 
   return CAT_CONFIGS.map((config, i) =>
     createCatFromConfig(
