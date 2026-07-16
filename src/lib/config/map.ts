@@ -139,6 +139,16 @@ export function createDefaultLayout(): TileMap {
   // 小厅: 5.25m × 2.75m
   fillRect(20, 17, 40, 27, TileType.FLOOR, FloorType.WOOD, ROOM_IDS.HALL);
 
+  // === 5. 室外填充 ===
+  // 将所有剩余 EMPTY 格填充为 WALL（室外 = 实心）
+  for (let r = 0; r < MAP_ROWS; r++) {
+    for (let c = 0; c < MAP_COLS; c++) {
+      if (map.getTile(c, r)?.type === TileType.EMPTY) {
+        map.setTileType(c, r, TileType.WALL);
+      }
+    }
+  }
+
   return map;
 }
 
