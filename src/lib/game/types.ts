@@ -1,9 +1,9 @@
 // 游戏常量定义
 export const TILE_SIZE = 32; // 瓷砖大小 32x32px
-export const MAP_COLS = 40; // 地图列数
-export const MAP_ROWS = 30; // 地图行数
-export const MAP_WIDTH = MAP_COLS * TILE_SIZE; // 地图像素宽度 1280
-export const MAP_HEIGHT = MAP_ROWS * TILE_SIZE; // 地图像素高度 960
+export const MAP_COLS = 22; // 地图列数
+export const MAP_ROWS = 20; // 地图行数
+export const MAP_WIDTH = MAP_COLS * TILE_SIZE; // 地图像素宽度 704
+export const MAP_HEIGHT = MAP_ROWS * TILE_SIZE; // 地图像素高度 640
 export const CAT_VISUAL_SIZE = 32; // 猫咪视觉尺寸 32x32px（标准Sprite尺寸）
 export const CAT_COLLISION_RADIUS = 16; // 猫咪碰撞半径 16px
 

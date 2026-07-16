@@ -25,8 +25,8 @@ import { TileMap } from './tile-map';
 function initCats(tileMap: TileMap) {
   // 将猫放在客厅区域的中间位置
   const T = TILE_SIZE;
-  const livingRoomCenterX = 30 * T;
-  const livingRoomCenterY = 12 * T;
+  const livingRoomCenterX = 15 * T;
+  const livingRoomCenterY = 9 * T;
 
   return CAT_CONFIGS.map((config, i) =>
     createCatFromConfig(
