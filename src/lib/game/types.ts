@@ -9,10 +9,10 @@ export const TILE_SIZE = 32;   // 每格渲染像素数
 export const PIXELS_PER_METER = TILE_SIZE / CELL_SIZE; // 128 px/m
 
 // === 房屋网格 ===
-export const MAP_COLS = 44;    // 44格 × 0.25m = 11m
-export const MAP_ROWS = 44;    // 44格 × 0.25m = 11m
-export const MAP_WIDTH = MAP_COLS * TILE_SIZE;  // 1408px
-export const MAP_HEIGHT = MAP_ROWS * TILE_SIZE; // 1408px
+export const MAP_COLS = 40;    // 40格 × 0.25m = 10m
+export const MAP_ROWS = 40;    // 40格 × 0.25m = 10m
+export const MAP_WIDTH = MAP_COLS * TILE_SIZE;  // 1280px
+export const MAP_HEIGHT = MAP_ROWS * TILE_SIZE; // 1280px
 
 // === 猫渲染尺寸（像素） ===
 export const CAT_VISUAL_SIZE = CAT_SIZE * PIXELS_PER_METER; // 32px
