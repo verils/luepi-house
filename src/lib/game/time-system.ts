@@ -102,8 +102,8 @@ export function getPhaseProgress(hour: number, minute: number): number {
   const phase = getCurrentPhase(hour);
   const config = PHASE_CONFIG[phase];
   
-  let phaseStart = config.start;
-  let phaseEnd = config.end;
+  let phaseStart: number;
+  let phaseEnd: number;
   let currentMinutes = hour * 60 + minute;
   
   // 处理夜晚跨越午夜的情况

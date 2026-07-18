@@ -149,7 +149,7 @@ function updateIdleState(cat: Cat, ctx: StateContext, dt: number): CatIntent[] {
       eating: 5 * calculateBehaviorWeight(cat.personality, 'eating'),
       drinking: 3,
       exploring: 8 * calculateBehaviorWeight(cat.personality, 'exploring'),
-      socializing: 1 * calculateBehaviorWeight(cat.personality, 'socializing'),
+      socializing: calculateBehaviorWeight(cat.personality, 'socializing'),
       watching: 5 * calculateBehaviorWeight(cat.personality, 'watching'),
       climbing: 4 * calculateBehaviorWeight(cat.personality, 'climbing'),
       grooming: 8 * calculateBehaviorWeight(cat.personality, 'grooming'),

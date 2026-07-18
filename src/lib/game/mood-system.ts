@@ -94,26 +94,26 @@ function getPersonalityMoodFactor(personality: CatPersonality, eventType: string
   switch (eventType) {
     case 'chase_start':
     case 'play_fight':
-      return 0.5 + (personality.playfulness / 100) * 1.0;
+      return 0.5 + personality.playfulness / 100;
     
     case 'pet':
     case 'socialize':
-      return 0.5 + (personality.sociability / 100) * 1.0;
+      return 0.5 + personality.sociability / 100;
     
     case 'flee':
     case 'hide':
       // 勇敢猫受影响更小（反向）
-      return 1.5 - (personality.bravery / 100) * 1.0;
+      return 1.5 - personality.bravery / 100;
     
     case 'eat':
-      return 0.5 + (personality.appetite / 100) * 1.0;
+      return 0.5 + personality.appetite / 100;
     
     case 'bored':
       // 耐心猫更不容易无聊（反向）
-      return 1.5 - (personality.patience / 100) * 1.0;
+      return 1.5 - personality.patience / 100;
     
     case 'groom':
-      return 0.5 + (personality.cleanliness / 100) * 1.0;
+      return 0.5 + personality.cleanliness / 100;
     
     default:
       return 1.0;
