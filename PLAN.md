@@ -3,8 +3,8 @@
 ## 📊 当前进度概览
 
 **最后更新**: 2026-07-18
-**当前阶段**: 任务 1-6 已完成；代码审查已完成，修复方案已记录待执行
-**已完成**: 任务 1-6（基础系统、测试优化、独立AI架构）
+**当前阶段**: 任务 1-6 已完成；store 响应式与 deltaTime 已修复；问题已重排（A→D），待按序执行
+**已完成**: 任务 1-6（基础系统、测试优化、独立AI架构）；修复：store 响应式、deltaTime 时间驱动、moodTimer 更新
 
 ---
 
@@ -79,122 +79,74 @@ type CatIntent =
 
 ---
 
-## 待修复问题分析与优化方案（2026-07-18 代码审查）
+## 问题处理计划表（2026-07-18 重排）
 
-> 本章节记录一次全量代码审查的结论。审查时状态：`pnpm test:run` 110 通过、`pnpm check` 0 错误、`pnpm lint` 20 条警告。每个问题按"问题描述 / 优化方向 / 解决方案 / 理由"四要素记录，**尚未实施**，经确认后按优先级分批执行。
+> 已完成的修复（store 响应式 + UI 同步节流、deltaTime 时间驱动、moodTimer 更新）不再保留在表中。
+> 状态图例：⬜ 待处理 / 🔵 进行中 / ✅ 完成。执行顺序：A1 → A2 → B1-B3 → C1-C5 → D1-D4。
 
-### 一、状态响应式失效（高优先级）
+| 标号 | 问题 | 影响程度 | 处理难度 | 状态 |
+|------|------|:---:|:---:|:---:|
+| A1 | 碰撞解析统一（去重复解析，交互状态不再跳过固体碰撞） | 高 | 低 | ⬜ |
+| A2 | 实时感知互动 AI（感知-反应层，帧级动作切换） | 高 | 高 | ⬜ |
+| B1 | GameCanvas 事件监听器泄漏 | 中 | 低 | ⬜ |
+| B2 | App.svelte 挂载时序依赖 | 中 | 低 | ⬜ |
+| B3 | 睡觉/躲藏瞬移到目标点 | 中 | 中 | ⬜ |
+| C1 | debugMode 运行时切换不生效 | 低 | 低 | ⬜ |
+| C2 | 点击空白处误触发拖拽 | 低 | 低 | ⬜ |
+| C3 | 天气误报变化事件 + 背景色过渡未实现 | 低 | 低 | ⬜ |
+| C4 | applyWeatherEffect 空实现（天气无视觉表现） | 低 | 低 | ⬜ |
+| C5 | 测试缺口（tile-map / renderer / 组件） | 中 | 中 | ⬜ |
+| D1 | darkenPattern 缓存 key 冲突（潜伏） | 低 | 低 | ⬜ |
+| D2 | 调试层未处理 DPR | 低 | 低 | ⬜ |
+| D3 | index.html title、README 与实际对齐 | 低 | 低 | ⬜ |
+| D4 | 类型内联 import、init.ts as any、lint curly 清理 | 低 | 低 | ⬜ |
 
-#### 1. gameLoop 不刷新 store，UI 静态
+### A1. 碰撞解析统一（A2 的前置）
 
-- **问题描述**：`src/App.svelte` 的 `gameLoop` 每帧直接修改 gameState 内部对象属性（时间、猫位置、事件日志），但从不调用 `gameState.set(state)`。Svelte store 只在 set 时通知订阅者，因此模板中 `$gameState?.time?.hour`（App.svelte:204）、速度按钮、InfoPanel 中的猫属性自初始化后不再更新；事件日志、天气变化同样无法反映到 UI。
-- **优化方向**：游戏状态的每帧变化能正确驱动 Svelte UI 刷新。
-- **解决方案**：在 `gameLoop` 末尾调用 `gameState.set(state)`；同时用 `get(gameState)` 抽一个 `getGameState()` 辅助函数，替换 `resetCamera`/`zoomIn`/`zoomOut`/`handleSpeedChange` 中四处重复的 subscribe+unsub 写法。
-- **理由**：writable 的 `set` 对同引用对象也会通知订阅者；当前订阅者仅 GameCanvas（引用赋值）和模板两处，每帧 set 的成本可忽略。备选方案是把 gameState 改为 `$state` rune 或把 UI 字段拆成独立 store——前者要重写 store 层，后者要维护字段清单，对本项目都属于过度设计。
+- **问题**：moveToward 内（cat-state-machine.ts:531）与 updateCatState 末尾（:100）重复解析固体碰撞；追逐/逃跑/打闹状态整体跳过碰撞（:98），猫会穿模、卡进家具
+- **方案**：移除 moveToward 内固体碰撞，统一在 updateCatState 末尾执行一次；固体碰撞对所有状态生效；猫间分离仅非交互状态（追逐/打闹需要贴身）
+- **理由**：重复解析导致推离力度不稳定；交互状态穿模会直接破坏 A2 实时互动的观感
 
-### 二、帧率驱动（高优先级）
+### A2. 实时感知互动 AI（新需求）
 
-#### 2. 全部逻辑按帧推进，无 deltaTime
+- **价值**：当前猫是秒级决策的随机状态机（idle 结束才决策，互动权重 ≈1.7%，决策不看对方位置状态）。本任务把它升级为帧级感知-反应的双独立 AI，是"观察两只猫互动"这一核心玩法的质变，并为中期更复杂行为打底
+- **设计（草案，实施前定稿）**：不推翻状态机，叠加感知-反应层
+  - 每帧 `perceive(cat, ctx)` 纯函数：圆形视野 VIEW_RADIUS=200px，产出视野内另一只猫的距离/action/是否在接近（用两帧距离差估算）
+  - `evaluateReaction(cat, perception)` 纯函数：对方进入关注距离 ≈120px 且接近 → 按个性分支（sociability/playfulness 高→want_chase；bravery 低→短促 fleeing；否则→watching 1-2 秒）；对方在视野内打闹 → watching 围观
+  - 打断白名单：可打断 idle/moving/grooming/watching/exploring；不可打断 sleeping/hiding/playFighting/eating/drinking；REACTION_COOLDOWN=60-120 帧防抖动
+  - 真正实现 watching 状态（当前被映射到 grooming）；自身反应直接切状态，追逐走现有 intent 系统
+- **风险**：频繁打断导致行为神经质 → cooldown + 白名单约束；测试复杂化 → 感知/反应全部纯函数化
+- **验收**：一只猫接近时另一只在 1 秒内产生可见反应（注视/逃离/反追）；无打断死循环；现有测试全过 + 感知/反应纯函数测试
 
-- **问题描述**：主循环用 `requestAnimationFrame`（App.svelte:41），时间系统写死 `BASE_TICK_RATE = 2 / 60`（time-system.ts:16），猫速单位为"像素/帧"（cats.ts），天气 duration、idleTimer/actionTimer/blinkTimer 均为帧数倒计时。结果：144Hz 屏幕上游戏速度约 2.4 倍，30FPS 时减半。
-- **优化方向**：游戏速度（时间流速、猫移动、计时器衰减）与帧率解耦，30/60/144Hz 体验一致。
-- **解决方案**：采用归一化 deltaTime——`dt = 真实毫秒差 / (1000/60)`，clamp 上限 3；`updateTime`/`updateWeather`/`updateCatState`/`updateMood` 增加 `dt` 参数（默认 `= 1`），内部所有推进量乘 dt；`moveToward` 位移乘 dt。
-- **理由**：选时间驱动而非固定时间步长——项目是观察型电子宠物，无精确物理、无联机，固定步长 + 渲染插值的复杂度收益不成比例。`dt = 1` 等价 60fps 一帧，现有全部数值常数（speed、timer 帧数、BASE_TICK_RATE）语义不变；默认参数使现有测试零改动通过，只需补 dt 用例。
+### B1. GameCanvas 事件监听器泄漏
 
-### 三、组件生命周期（高优先级）
+- **问题**：canvas 的 mousedown/mousemove/mouseup/mouseleave/wheel 五个监听器（GameCanvas.svelte:56-60）在 onDestroy 中未移除
+- **方案**：onDestroy 补全五个 removeEventListener
 
-#### 3. GameCanvas 事件监听器泄漏
+### B2. App.svelte 挂载时序依赖
 
-- **问题描述**：`GameCanvas.svelte:56-60` 在 onMount 中为 canvas 绑定了 mousedown/mousemove/mouseup/mouseleave/wheel，但两个 onDestroy（:29、:68）只移除了 resize 和 keydown，canvas 五个监听器从未移除。组件重建后监听器叠加。
-- **优化方向**：组件销毁时清理全部绑定。
-- **解决方案**：在 onDestroy 中补全五个 `canvas.removeEventListener`。
+- **问题**：onMount 中 `gameRenderer!.getCamera()`（App.svelte:37 附近）依赖子组件先挂载的隐式时序
+- **方案**：onMount 只做 initializeGame()；相机初始化与 gameLoop 启动移入 `$effect`，监听 gameRenderer 非 null 后执行一次（标志位防重入）
 
-#### 4. App.svelte 依赖子组件挂载时序
+### B3. 睡觉/躲藏瞬移到目标点
 
-- **问题描述**：`App.svelte:37` 在 onMount 中用 `gameRenderer!.getCamera()` 非空断言。`gameRenderer` 由 GameCanvas 的 `bind:renderer` 在其 onMount 中回传，依赖"子组件 onMount 先于父组件"这一隐式时序，脆弱且不可静态保证。
-- **优化方向**：消除时序假设，renderer 就绪后再初始化相机与循环。
-- **解决方案**：onMount 只调用 `initializeGame()`；相机初始化和 gameLoop 启动移入 `$effect`，监听 `gameRenderer` 非 null 后执行一次（加标志位防重入）。
+- **问题**：enterSleepingState/enterHidingState 直接切 action，猫瞬移到床/庇护所中心（cat-state-machine.ts:474、:487）
+- **方案**：Cat 增加 `nextAction?` 字段；两个 enter 函数改为设 target + action='moving' + nextAction；updateMovingState 到达后切换
 
-#### 5. debugMode 切换不生效
+### C1-C5（中优先级，方案从简）
 
-- **问题描述**：GameCanvas 订阅了 `debugMode`，但只在 onMount 创建 `GameRenderer(canvas, isDebug)` 时读取一次；URL 参数变化（App.svelte:29-32 的 `$effect`）更新 store 后，已创建的 renderer 不会响应。
-- **优化方向**：debug 模式可运行时切换。
-- **解决方案**：`GameRenderer` 增加 `setDebugMode(debug: boolean)`；GameCanvas 用 `$effect` 在 isDebug 变化时调用 `renderer?.setDebugMode(...)`。
+- **C1**：GameRenderer 增加 setDebugMode()，GameCanvas 用 $effect 随 isDebug 调用
+- **C2**：handleMouseDown 记录按下位置，累计位移 >4px 才 pan
+- **C3**：updateWeather 天气未变时返回 false；getWeatherBackgroundColor 保存 previous 天气并插值（复用 time-system 的 interpolateColor）
+- **C4**：applyWeatherEffect 轻量实现：按天气类型全屏轻色调叠加（opacity ≤ 0.1）
+- **C5**：优先补 tile-map.test.ts（getWallRects 合并、getFloorBounds、isWalkable、序列化往返）
 
-#### 6. 点击空白处误触发拖拽
+### D1-D4（低优先级，方案从简）
 
-- **问题描述**：`handleMouseDown` 未点中猫时立即 `isDragging = true`，`handleMouseMove` 无阈值直接 pan——用户只想点击取消选择，也会产生微小视图位移。
-- **优化方向**：点击与拖拽可区分。
-- **解决方案**：记录按下位置，累计位移超过阈值（约 4px）才开始 pan。
-
-### 四、游戏逻辑缺陷（中优先级）
-
-#### 7. 固体碰撞重复解析，交互状态完全跳过碰撞
-
-- **问题描述**：`moveToward` 内部（cat-state-machine.ts:530-534）与 `updateCatState` 末尾（:100）都会执行 `resolveSolidCollisions`，同一帧可能推离两次、力度不稳定；而追逐/逃跑/打闹状态整体跳过碰撞（:98），这些状态下的猫可能重叠或卡进家具。
-- **优化方向**：碰撞解析每帧每猫恰好一次；任何状态都不穿墙、不卡家具。
-- **解决方案**：移除 `moveToward` 内的固体碰撞，统一在 `updateCatState` 末尾执行；固体碰撞对所有状态生效，猫间分离仍仅限非交互状态（追逐/打闹需要贴身）。
-- **理由**：追逐/打闹中猫需要接触，猫间分离跳过是行为设计；但穿墙/卡家具在任何状态下都是 bug，固体碰撞必须无条件应用。
-
-#### 8. 睡觉/躲藏瞬移到目标点
-
-- **问题描述**：`enterSleepingState`（:474）/`enterHidingState`（:487）直接把 target 设为床/庇护所中心并立即切换 action，猫从原地消失、出现在床上，没有走过去的动画过程。
-- **优化方向**：猫先移动到目标点，再进入睡觉/躲藏状态。
-- **解决方案**：`Cat` 增加可选字段 `nextAction?: CatActionState`；两个 enter 函数改为设置 target + `action = 'moving'` + `nextAction`；`updateMovingState` 到达后切换。
-
-#### 9. moodTimer 从不更新，兴奋特效静止
-
-- **问题描述**：`renderExcitementSparkles`（cat-renderer.ts:325）用 `cat.moodTimer * 0.1` 驱动旋转动画，但 moodTimer 在创建时设 0 后无任何更新代码，特效永远停在初始相位。
-- **优化方向**：特效正常播放。
-- **解决方案**：`updateCatState` 中 `moodTimer += dt`（随时间驱动改造一并完成）。
-
-#### 10. 天气系统误报与未实现的过渡
-
-- **问题描述**：`updateWeather`（weather-system.ts:41）duration 耗尽时即使新天气与当前相同也返回 true，App.svelte:83 据此记录"天气变为X"日志，产生误报；`getWeatherBackgroundColor`（:93）声明了 `transitionProgress` 却直接返回目标色，过渡未实现。
-- **优化方向**：天气事件只在真实变化时记录；背景色平滑过渡。
-- **解决方案**：天气未变时仅重置 duration 并返回 false；保存 previous 天气并在两色间按 transitionProgress 插值（可把 time-system 的私有 `interpolateColor` 导出复用）。
-
-### 五、渲染细节（低优先级）
-
-#### 11. darkenPattern 缓存 key 冲突
-
-- **问题描述**：`renderer.ts:402` 的缓存 key 只有 `factor`，不同 pattern 相同 factor 会命中第一个 pattern 的变暗结果。当前只有墙壁一处调用所以未暴露，属于潜伏 bug。
-- **解决方案**：key 改为 `${patternKey}_${factor}`，调用处传入 pattern 名。
-
-#### 12. 调试层未处理 DPR
-
-- **问题描述**：`renderDebugLayers`（renderer.ts:195-196）用 `canvas.width / zoom` 计算视野宽高，但 canvas.width 是物理像素（CSS 像素 × devicePixelRatio），高清屏（DPR≥2）上调试框比实际视野大一倍以上。
-- **解决方案**：宽高再除以 `devicePixelRatio`。
-
-#### 13. applyWeatherEffect 空实现
-
-- **问题描述**：`renderer.ts:186` 是空函数，天气系统对画面零影响（地图中 EMPTY 格也已被 map.ts 第 4 步全部填为 WALL，无"窗外"区域可见）。
-- **解决方案**：先做轻量实现——按天气类型全屏轻色调叠加（雨天偏蓝灰、雪天偏白，opacity ≤ 0.1），不影响静态层缓存结构；未来若有窗外区域再改为局部绘制。
-
-### 六、文档与代码风格（低优先级）
-
-#### 14. index.html 标题与项目不符
-
-- **问题描述**：title 仍是模板默认值 `learn-svelte`。
-- **解决方案**：改为 `CatHouse`。
-
-#### 15. README 与实际不符
-
-- **问题描述**：项目结构写 `static/`（实际是 `public/`）；pnpm 要求写 `v9.x`，AGENTS.md 写 `v11`，package.json 写 `>=9.0.0`，三处不一致。
-- **解决方案**：目录名改 `public/`；pnpm 版本以 package.json 的 `>=9.0.0` 为准统一。
-
-#### 16. 类型与 lint 清理
-
-- **问题描述**：types.ts 中 `Cat.mood`、`GameState.time/weather/eventLog` 使用内联 `import('./x').Type`；init.ts:58 `defaultFloor` 用 `as any`；ESLint 有 20 条 curly 警告（GameCanvas.svelte、map.ts、tile-map.ts）。
-- **解决方案**：内联 import 改为顶部显式 `import type`；`as any` 改为 `?? FloorType.WOOD`；`pnpm lint --fix` 自动修复 curly。
-
-### 七、测试缺口（低优先级）
-
-#### 17. 核心模块无测试
-
-- **问题描述**：tile-map（墙壁合并、边界计算、序列化）、renderer、texture-manager 无单元测试；三个 Svelte 组件无测试。现有 110 个测试集中在纯逻辑模块。
-- **优化方向**：地图/碰撞基础数据结构有回归保护。
-- **解决方案**：优先补 `tile-map.test.ts`（getWallRects 合并正确性、getFloorBounds、isWalkable、toJSON/fromJSON 往返）；渲染器与组件测试待修复实施稳定后再补。
+- **D1**：darkenPattern 缓存 key 改为 `${patternKey}_${factor}`
+- **D2**：renderDebugLayers 宽高除以 devicePixelRatio
+- **D3**：index.html title 改 CatHouse；README 的 static→public、pnpm 版本以 package.json 为准
+- **D4**：types.ts 内联 import 改显式 type import；init.ts as any 改 ?? FloorType.WOOD；pnpm lint --fix
 
 ---
 
