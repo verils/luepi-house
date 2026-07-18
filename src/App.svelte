@@ -27,6 +27,7 @@
   let fpsFrames = 0;
   let fpsLastTime = performance.now();
   let lastUiSync = 0;
+  let lastFrameTime = 0;
 
   $effect(() => {
     const p = new URLSearchParams(location.search).get('debug');
@@ -79,11 +80,15 @@
       fpsLastTime = now;
     }
 
+    // 归一化帧时间（dt=1 等价 60fps 一帧，上限 3 防止后台恢复跳变）
+    const dt = lastFrameTime === 0 ? 1 : Math.min((now - lastFrameTime) / (1000 / 60), 3);
+    lastFrameTime = now;
+
     // 更新时间系统
-    updateTime(state.time);
+    updateTime(state.time, dt);
     
     // 更新天气系统
-    const weatherChanged = updateWeather(state.weather);
+    const weatherChanged = updateWeather(state.weather, dt);
     if (weatherChanged && state.eventLog) {
       logSystemEvent(state.eventLog, 'weather_change', `天气变为${getWeatherName(state.weather.current)}`, {
         weather: state.weather.current,
@@ -111,7 +116,7 @@
 
     const allIntents: CatIntent[] = [];
     for (const cat of state.cats) {
-      const intents = updateCatState(cat, stateCtx);
+      const intents = updateCatState(cat, stateCtx, dt);
       allIntents.push(...intents);
     }
     resolveIntents(allIntents, state.cats);

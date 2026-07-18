@@ -82,3 +82,25 @@ describe('getWeatherBackgroundColor', () => {
     expect(colors.size).toBe(4);
   });
 });
+
+describe('updateWeather deltaTime', () => {
+  it('dt=2 时 duration 减少量翻倍', () => {
+    const w1 = createWeatherState();
+    const w2 = createWeatherState();
+    w2.duration = w1.duration;
+    const d0 = w1.duration;
+    updateWeather(w1, 1);
+    updateWeather(w2, 2);
+    expect(d0 - w2.duration).toBeCloseTo((d0 - w1.duration) * 2, 5);
+  });
+
+  it('dt=2 时过渡进度增速翻倍', () => {
+    const w1 = createWeatherState();
+    const w2 = createWeatherState();
+    w1.transitionProgress = 0;
+    w2.transitionProgress = 0;
+    updateWeather(w1, 1);
+    updateWeather(w2, 2);
+    expect(w2.transitionProgress).toBeCloseTo(w1.transitionProgress * 2, 5);
+  });
+});

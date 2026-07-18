@@ -166,3 +166,25 @@ describe('视觉反馈函数', () => {
     expect(getParticleType(90)).toBe('burst');
   });
 });
+
+describe('updateMood deltaTime', () => {
+  it('dt=2 时衰减量翻倍', () => {
+    const m1 = createMoodState();
+    const m2 = createMoodState();
+    m1.value = 80;
+    m2.value = 80;
+    updateMood(m1, defaultPersonality, 1);
+    updateMood(m2, defaultPersonality, 2);
+    expect(80 - m2.value).toBeCloseTo((80 - m1.value) * 2, 5);
+  });
+
+  it('dt 默认参数应为 1（60fps 等效）', () => {
+    const m1 = createMoodState();
+    const m2 = createMoodState();
+    m1.value = 80;
+    m2.value = 80;
+    updateMood(m1, defaultPersonality);
+    updateMood(m2, defaultPersonality, 1);
+    expect(m1.value).toBe(m2.value);
+  });
+});

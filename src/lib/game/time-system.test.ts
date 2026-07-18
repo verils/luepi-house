@@ -124,3 +124,21 @@ describe('getTimeOverlayColor', () => {
     }
   });
 });
+
+describe('updateTime deltaTime', () => {
+  it('dt=2 时时间累积应翻倍', () => {
+    const t1 = createTimeState();
+    const t2 = createTimeState();
+    updateTime(t1, 1);
+    updateTime(t2, 2);
+    expect(t2.tickAccumulator).toBeCloseTo(t1.tickAccumulator * 2, 5);
+  });
+
+  it('dt 默认参数应为 1（60fps 等效）', () => {
+    const t1 = createTimeState();
+    const t2 = createTimeState();
+    updateTime(t1);
+    updateTime(t2, 1);
+    expect(t1.tickAccumulator).toBe(t2.tickAccumulator);
+  });
+});

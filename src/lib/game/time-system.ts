@@ -43,11 +43,11 @@ export function createTimeState(): TimeState {
 /**
  * 更新时间状态
  */
-export function updateTime(time: TimeState): TimePhase | null {
+export function updateTime(time: TimeState, dt: number = 1): TimePhase | null {
   const previousPhase = time.phase;
   
-  // 根据速度倍数累积时间
-  time.tickAccumulator += BASE_TICK_RATE * time.speed;
+  // 根据速度倍数累积时间（dt=1 等价 60fps 一帧）
+  time.tickAccumulator += BASE_TICK_RATE * time.speed * dt;
   
   while (time.tickAccumulator >= 1) {
     time.tickAccumulator -= 1;

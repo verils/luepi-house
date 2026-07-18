@@ -44,10 +44,10 @@ export function createMoodState(): CatMoodState {
 /**
  * 更新情绪状态（距离衰减机制）
  */
-export function updateMood(mood: CatMoodState, personality: CatPersonality): void {
+export function updateMood(mood: CatMoodState, personality: CatPersonality, dt: number = 1): void {
   const baseRate = mood.decayRate;
   const personalityFactor = 0.8 + (personality.energy / 100) * 0.4;
-  const decayRate = calculateDecayRate(mood.value, baseRate * personalityFactor);
+  const decayRate = calculateDecayRate(mood.value, baseRate * personalityFactor) * dt;
   
   // 向中性值(50)衰减
   if (mood.value > 50) {

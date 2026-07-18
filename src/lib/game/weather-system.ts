@@ -38,8 +38,8 @@ export function createWeatherState(): WeatherState {
 /**
  * 更新天气状态
  */
-export function updateWeather(weather: WeatherState): boolean {
-  weather.duration--;
+export function updateWeather(weather: WeatherState, dt: number = 1): boolean {
+  weather.duration -= dt;
   
   if (weather.duration <= 0) {
     const newWeather = getRandomWeather();
@@ -53,7 +53,7 @@ export function updateWeather(weather: WeatherState): boolean {
   
   // 过渡动画
   if (weather.transitionProgress < 1) {
-    weather.transitionProgress = Math.min(1, weather.transitionProgress + 0.02);
+    weather.transitionProgress = Math.min(1, weather.transitionProgress + 0.02 * dt);
   }
   
   return false;

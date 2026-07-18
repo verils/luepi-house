@@ -171,3 +171,29 @@ describe('updatePlayFightingState', () => {
     expect(intents[0]).toEqual({ type: 'want_stop_play_fighting', catId: 'a' });
   });
 });
+
+describe('updateCatState deltaTime', () => {
+  it('dt=2 时 idleTimer 减少量翻倍', () => {
+    const cat = createTestCat({ action: 'idle', idleTimer: 100 });
+    const ctx = createCtx([cat]);
+    updateCatState(cat, ctx, 2);
+    expect(cat.idleTimer).toBe(98);
+  });
+
+  it('dt=2 时 moving 位移翻倍', () => {
+    const cat1 = createTestCat({ action: 'moving', targetX: 400, targetY: 100, x: 100, y: 100 });
+    const cat2 = createTestCat({ action: 'moving', targetX: 400, targetY: 100, x: 100, y: 100 });
+    const ctx1 = createCtx([cat1]);
+    const ctx2 = createCtx([cat2]);
+    updateCatState(cat1, ctx1, 1);
+    updateCatState(cat2, ctx2, 2);
+    expect(cat2.x - 100).toBeCloseTo((cat1.x - 100) * 2, 5);
+  });
+
+  it('moodTimer 应随帧推进（驱动特效动画）', () => {
+    const cat = createTestCat({ action: 'idle', idleTimer: 100 });
+    const ctx = createCtx([cat]);
+    updateCatState(cat, ctx, 1);
+    expect(cat.moodTimer).toBe(1);
+  });
+});

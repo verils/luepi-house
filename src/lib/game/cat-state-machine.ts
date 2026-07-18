@@ -45,14 +45,15 @@ export interface StateContext {
   gameTime?: { hour: number; minute: number; day: number };
 }
 
-export function updateCatState(cat: Cat, ctx: StateContext): CatIntent[] {
+export function updateCatState(cat: Cat, ctx: StateContext, dt: number = 1): CatIntent[] {
   const previousAction = cat.action;
-  cat.actionTimer++;
+  cat.actionTimer += dt;
+  cat.moodTimer += dt;
 
-  updateMood(cat);
+  updateMood(cat, dt);
 
   if (cat.actionSwitchTimer > 0) {
-    cat.actionSwitchTimer--;
+    cat.actionSwitchTimer -= dt;
     if (cat.actionSwitchTimer <= 0) {
       const switchIntents = switchExcitedAction(cat, ctx);
       if (switchIntents.length > 0) { return switchIntents; }
@@ -62,10 +63,10 @@ export function updateCatState(cat: Cat, ctx: StateContext): CatIntent[] {
   let intents: CatIntent[] = [];
   switch (cat.action) {
     case 'idle':
-      intents = updateIdleState(cat, ctx);
+      intents = updateIdleState(cat, ctx, dt);
       break;
     case 'moving':
-      updateMovingState(cat, ctx);
+      updateMovingState(cat, ctx, dt);
       break;
     case 'sleeping':
       updateSleepingState(cat, ctx);
@@ -74,10 +75,10 @@ export function updateCatState(cat: Cat, ctx: StateContext): CatIntent[] {
       updateHidingState(cat, ctx);
       break;
     case 'chasing':
-      intents = updateChasingState(cat, ctx);
+      intents = updateChasingState(cat, ctx, dt);
       break;
     case 'fleeing':
-      updateFleeingState(cat, ctx);
+      updateFleeingState(cat, ctx, dt);
       break;
     case 'grooming':
       updateGroomingState(cat, ctx);
@@ -92,7 +93,7 @@ export function updateCatState(cat: Cat, ctx: StateContext): CatIntent[] {
     logBehaviorEvent(ctx.eventLog, cat.id, cat.name, cat.action, ctx.gameTime);
   }
 
-  updateBlink(cat);
+  updateBlink(cat, dt);
 
   // 仅在非交互状态下应用碰撞解析（追逐/逃跑/打闹由各自逻辑处理距离）
   if (cat.action !== 'chasing' && cat.action !== 'fleeing' && cat.action !== 'playFighting') {
@@ -105,13 +106,13 @@ export function updateCatState(cat: Cat, ctx: StateContext): CatIntent[] {
   return intents;
 }
 
-function updateMood(cat: Cat): void {
+function updateMood(cat: Cat, dt: number): void {
   // 使用新的情绪系统
-  updateMoodState(cat.mood, cat.personality);
+  updateMoodState(cat.mood, cat.personality, dt);
 }
 
-function updateBlink(cat: Cat): void {
-  cat.blinkTimer--;
+function updateBlink(cat: Cat, dt: number): void {
+  cat.blinkTimer -= dt;
   if (cat.blinkTimer <= 0) {
     if (cat.isBlinking) {
       cat.isBlinking = false;
@@ -134,8 +135,8 @@ function getActionSwitchInterval(cat: Cat): number {
   return Math.floor(base * MOOD_ACTION_SWITCH_MULTIPLIER[moodThreshold]);
 }
 
-function updateIdleState(cat: Cat, ctx: StateContext): CatIntent[] {
-  cat.idleTimer--;
+function updateIdleState(cat: Cat, ctx: StateContext, dt: number): CatIntent[] {
+  cat.idleTimer -= dt;
 
   if (cat.idleTimer <= 0) {
     // 使用加权随机选择下一个行为
@@ -220,7 +221,7 @@ function updateIdleState(cat: Cat, ctx: StateContext): CatIntent[] {
   return [];
 }
 
-function updateMovingState(cat: Cat, ctx: StateContext): void {
+function updateMovingState(cat: Cat, ctx: StateContext, dt: number): void {
   const dx = cat.targetX - cat.x;
   const dy = cat.targetY - cat.y;
   const distance = Math.sqrt(dx * dx + dy * dy);
@@ -235,7 +236,7 @@ function updateMovingState(cat: Cat, ctx: StateContext): void {
     return;
   }
 
-  moveToward(cat, cat.targetX, cat.targetY, getEffectiveSpeed(cat), ctx);
+  moveToward(cat, cat.targetX, cat.targetY, getEffectiveSpeed(cat), ctx, dt);
 }
 
 function updateSleepingState(cat: Cat, ctx: StateContext): void {
@@ -254,7 +255,7 @@ function updateHidingState(cat: Cat, ctx: StateContext): void {
   }
 }
 
-function updateChasingState(cat: Cat, ctx: StateContext): CatIntent[] {
+function updateChasingState(cat: Cat, ctx: StateContext, dt: number): CatIntent[] {
   if (!cat.chaseTargetId) {
     cat.action = 'idle';
     cat.idleTimer = 120 + Math.floor(Math.random() * 120);
@@ -286,11 +287,11 @@ function updateChasingState(cat: Cat, ctx: StateContext): CatIntent[] {
     }
   }
 
-  moveToward(cat, target.x, target.y, getEffectiveSpeed(cat) * 1.05, ctx);
+  moveToward(cat, target.x, target.y, getEffectiveSpeed(cat) * 1.05, ctx, dt);
   return [];
 }
 
-function updateFleeingState(cat: Cat, ctx: StateContext): void {
+function updateFleeingState(cat: Cat, ctx: StateContext, dt: number): void {
   if (!cat.chaseTargetId) {
     cat.action = 'idle';
     cat.idleTimer = 120 + Math.floor(Math.random() * 120);
@@ -317,18 +318,18 @@ function updateFleeingState(cat: Cat, ctx: StateContext): void {
   }
 
   if (distance > 0) {
-    const fleeX = cat.x + (dx / distance) * getEffectiveSpeed(cat) * 1.2;
-    const fleeY = cat.y + (dy / distance) * getEffectiveSpeed(cat) * 1.2;
+    const fleeX = cat.x + (dx / distance) * getEffectiveSpeed(cat) * 1.2 * dt;
+    const fleeY = cat.y + (dy / distance) * getEffectiveSpeed(cat) * 1.2 * dt;
     cat.targetX = clampToHouseX(fleeX, cat, ctx.house);
     cat.targetY = clampToHouseY(fleeY, cat, ctx.house);
   } else {
     // 零距离：随机方向逃跑
     const angle = Math.random() * Math.PI * 2;
-    const speed = getEffectiveSpeed(cat) * 1.2;
+    const speed = getEffectiveSpeed(cat) * 1.2 * dt;
     cat.targetX = clampToHouseX(cat.x + Math.cos(angle) * speed, cat, ctx.house);
     cat.targetY = clampToHouseY(cat.y + Math.sin(angle) * speed, cat, ctx.house);
   }
-  moveToward(cat, cat.targetX, cat.targetY, getEffectiveSpeed(cat) * 1.2, ctx);
+  moveToward(cat, cat.targetX, cat.targetY, getEffectiveSpeed(cat) * 1.2, ctx, dt);
 }
 
 function updateGroomingState(cat: Cat, ctx: StateContext): void {
@@ -507,7 +508,7 @@ function enterHidingState(cat: Cat, ctx: StateContext): void {
   cat.actionTimer = 0;
 }
 
-function moveToward(cat: Cat, targetX: number, targetY: number, speed: number, ctx?: StateContext): void {
+function moveToward(cat: Cat, targetX: number, targetY: number, speed: number, ctx?: StateContext, dt: number = 1): void {
   const dx = targetX - cat.x;
   const dy = targetY - cat.y;
   const distance = Math.sqrt(dx * dx + dy * dy);
@@ -521,8 +522,8 @@ function moveToward(cat: Cat, targetX: number, targetY: number, speed: number, c
   const dirX = dx / distance;
   const dirY = dy / distance;
 
-  let newX = cat.x + dirX * speed;
-  let newY = cat.y + dirY * speed;
+  let newX = cat.x + dirX * speed * dt;
+  let newY = cat.y + dirY * speed * dt;
 
   newX = clampToHouseX(newX, cat, ctx?.house);
   newY = clampToHouseY(newY, cat, ctx?.house);
