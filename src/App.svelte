@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
+  import { get } from 'svelte/store';
   import { updateCatState, resolveIntents } from './lib/game';
   import type { GameRenderer, Camera, StateContext, GameState, Cat, CatIntent } from './lib/game';
   import { MAP_WIDTH, MAP_HEIGHT } from './lib/game';
@@ -57,12 +58,14 @@
     camera.y = viewportCenterY - houseCenterY * camera.zoom;
   }
 
+  function getGameState(): GameState | null {
+    return get(gameState);
+  }
+
   function gameLoop() {
-    let state = null as GameState | null;
-    const unsub = gameState.subscribe((s) => (state = s));
+    const state = getGameState();
 
     if (!state || !gameRenderer) {
-      unsub();
       animationFrameId = requestAnimationFrame(gameLoop);
       return;
     }
@@ -113,7 +116,12 @@
     resolveIntents(allIntents, state.cats);
 
     gameRenderer.render(state);
-    unsub();
+
+    // 通知 UI 刷新（时间/速度显示）
+    gameState.set(state);
+    // 同步刷新选中猫（InfoPanel 依赖 $selectedCat，gameState 的通知不会触发它）
+    const sel = get(selectedCat);
+    if (sel) { selectedCat.set(sel); }
 
     animationFrameId = requestAnimationFrame(gameLoop);
   }
@@ -122,9 +130,7 @@
     if (!camera || !gameRenderer) {
       return;
     }
-    let state: GameState | null = null;
-    const unsub = gameState.subscribe((s) => (state = s));
-    unsub();
+    const state = getGameState();
     if (!state) {
       return;
     }
@@ -140,9 +146,7 @@
     if (!camera || !gameRenderer) {
       return;
     }
-    let state: GameState | null = null;
-    const unsub = gameState.subscribe((s) => (state = s));
-    unsub();
+    const state = getGameState();
     if (!state) {
       return;
     }
@@ -155,9 +159,7 @@
     if (!camera || !gameRenderer) {
       return;
     }
-    let state: GameState | null = null;
-    const unsub = gameState.subscribe((s) => (state = s));
-    unsub();
+    const state = getGameState();
     if (!state) {
       return;
     }
@@ -175,15 +177,12 @@
   }
 
   function handleSpeedChange() {
-    let state = null as GameState | null;
-    const unsub = gameState.subscribe((s) => (state = s));
-    unsub();
+    const state = getGameState();
     if (!state) {
       return;
     }
 
     state.time.speed = cycleTimeSpeed(state.time.speed);
-    gameState.set(state);
   }
 </script>
 
