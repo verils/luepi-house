@@ -4,7 +4,7 @@
   import { updateCatState, resolveIntents } from './lib/game';
   import type { GameRenderer, Camera, StateContext, GameState, Cat, CatIntent } from './lib/game';
   import { MAP_WIDTH, MAP_HEIGHT } from './lib/game';
-  import { updateTime, cycleTimeSpeed, formatGameTime } from './lib/game';
+  import { updateTime, cycleTimeSpeed } from './lib/game';
   import { updateWeather, getWeatherName } from './lib/game';
   import { logSystemEvent } from './lib/game';
   import {
@@ -26,6 +26,7 @@
 
   let fpsFrames = 0;
   let fpsLastTime = performance.now();
+  let lastUiSync = 0;
 
   $effect(() => {
     const p = new URLSearchParams(location.search).get('debug');
@@ -117,11 +118,14 @@
 
     gameRenderer.render(state);
 
-    // 通知 UI 刷新（时间/速度显示）
-    gameState.set(state);
-    // 同步刷新选中猫（InfoPanel 依赖 $selectedCat，gameState 的通知不会触发它）
-    const sel = get(selectedCat);
-    if (sel) { selectedCat.set(sel); }
+    // 通知 UI 刷新（节流 200ms，避免每帧触发 Svelte 更新导致掉帧）
+    if (now - lastUiSync >= 200) {
+      lastUiSync = now;
+      gameState.set(state);
+      // 同步刷新选中猫（InfoPanel 依赖 $selectedCat，gameState 的通知不会触发它）
+      const sel = get(selectedCat);
+      if (sel) { selectedCat.set(sel); }
+    }
 
     animationFrameId = requestAnimationFrame(gameLoop);
   }
@@ -200,7 +204,7 @@
 
     <div class="time-panel">
       <div class="time-display">
-        {formatGameTime($gameState?.time?.hour ?? 8, $gameState?.time?.minute ?? 0)}
+        {($gameState?.time?.hour ?? 8).toString().padStart(2, '0')} 时
       </div>
       <button class="speed-btn" onclick={handleSpeedChange}>
         {$gameState?.time?.speed ?? 1}x
