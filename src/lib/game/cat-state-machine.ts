@@ -95,13 +95,18 @@ export function updateCatState(cat: Cat, ctx: StateContext, dt: number = 1): Cat
 
   updateBlink(cat, dt);
 
-  // 仅在非交互状态下应用碰撞解析（追逐/逃跑/打闹由各自逻辑处理距离）
+  // 猫间分离仅在非交互状态应用（追逐/逃跑/打闹需要贴身）
+  let resolvedX = cat.x;
+  let resolvedY = cat.y;
   if (cat.action !== 'chasing' && cat.action !== 'fleeing' && cat.action !== 'playFighting') {
-    const resolved = resolveCatCollision(cat, cat.x, cat.y, ctx.allCats, ctx.house);
-    const solidResolved = resolveSolidCollisions(cat, resolved.x, resolved.y, ctx.solidObjects);
-    cat.x = solidResolved.x;
-    cat.y = solidResolved.y;
+    const resolved = resolveCatCollision(cat, resolvedX, resolvedY, ctx.allCats, ctx.house);
+    resolvedX = resolved.x;
+    resolvedY = resolved.y;
   }
+  // 固体碰撞（墙/家具）对所有状态生效，每帧每猫恰好一次
+  const solidResolved = resolveSolidCollisions(cat, resolvedX, resolvedY, ctx.solidObjects);
+  cat.x = solidResolved.x;
+  cat.y = solidResolved.y;
 
   return intents;
 }
@@ -527,12 +532,6 @@ function moveToward(cat: Cat, targetX: number, targetY: number, speed: number, c
 
   newX = clampToHouseX(newX, cat, ctx?.house);
   newY = clampToHouseY(newY, cat, ctx?.house);
-
-  if (ctx) {
-    const resolved = resolveSolidCollisions(cat, newX, newY, ctx.solidObjects);
-    newX = resolved.x;
-    newY = resolved.y;
-  }
 
   cat.x = newX;
   cat.y = newY;

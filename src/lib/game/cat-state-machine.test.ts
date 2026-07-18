@@ -197,3 +197,37 @@ describe('updateCatState deltaTime', () => {
     expect(cat.moodTimer).toBe(1);
   });
 });
+
+describe('碰撞解析统一', () => {
+  it('追逐状态也应被固体碰撞推离', () => {
+    const cat = createTestCat({
+      id: 'chaser',
+      action: 'chasing',
+      chaseTargetId: 'target',
+      x: 100,
+      y: 100,
+    });
+    const target = createTestCat({ id: 'target', x: 200, y: 100 });
+    const ctx = createCtx([cat, target]);
+    // 固体障碍物与猫移动后的中心 (≈117.6, 116) 重叠
+    ctx.solidObjects = [{ x: 120, y: 90, width: 32, height: 32 }];
+
+    updateCatState(cat, ctx, 1);
+
+    // 猫先向 target 移动（+x），随后被固体碰撞向 -x 推离，最终 x 小于初始值
+    expect(cat.x).toBeLessThan(100);
+  });
+
+  it('moving 状态固体碰撞推离位置精确', () => {
+    const cat = createTestCat({ action: 'moving', targetX: 400, targetY: 100, x: 100, y: 100 });
+    const ctx = createCtx([cat]);
+    // 障碍物紧贴移动路径但不完全阻挡
+    ctx.solidObjects = [{ x: 130, y: 90, width: 32, height: 32 }];
+
+    updateCatState(cat, ctx, 1);
+
+    // 猫移动后中心 (117.5,116) 与 rect (130-162, 90-122) 的最近点 (130,116) 距离 12.5 < 16
+    // 推离后：x = 101.5 - (16-12.5) = 98
+    expect(cat.x).toBeCloseTo(98, 0);
+  });
+});
