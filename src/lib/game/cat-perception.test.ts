@@ -69,7 +69,7 @@ function createCtx(cats: Cat[]): StateContext {
 function makePerception(overrides: Partial<Perception> = {}): Perception {
   return {
     otherId: 'other',
-    distance: 100,
+    distance: 60,
     otherAction: 'moving',
     approaching: true,
     ...overrides,
@@ -165,12 +165,39 @@ describe('evaluateReaction', () => {
 
   it('对方在关注距离外时不反应', () => {
     const cat = createTestCat({
-      personality: { ...createTestCat().personality, sociability: 90 },
+      personality: { ...createTestCat().personality, sociability: 90, alertness: 100 },
     });
 
     expect(
       evaluateReaction(cat, makePerception({ distance: ATTENTION_RADIUS + 1 }))
     ).toBeNull();
+  });
+
+  it('钝感猫注意不到远处接近（注意力半径随警觉性缩小）', () => {
+    const cat = createTestCat({
+      personality: { ...createTestCat().personality, alertness: 10, sociability: 90 },
+    });
+
+    // alertness 10 → 半径 66px；100px 的接近注意不到
+    expect(evaluateReaction(cat, makePerception({ distance: 100 }))).toBeNull();
+  });
+
+  it('钝感猫对贴脸的接近仍有反应', () => {
+    const cat = createTestCat({
+      personality: { ...createTestCat().personality, alertness: 10, sociability: 90 },
+    });
+
+    // 60px 在 66px 半径内 → 正常分支
+    expect(evaluateReaction(cat, makePerception({ distance: 60 }))).toBe('chase');
+  });
+
+  it('高警觉猫能反应远处的接近', () => {
+    const cat = createTestCat({
+      personality: { ...createTestCat().personality, alertness: 95, sociability: 90 },
+    });
+
+    // alertness 95 → 半径 117px；110px 内有反应
+    expect(evaluateReaction(cat, makePerception({ distance: 110 }))).toBe('chase');
   });
 
   it('体力不足时追逐降级为注视', () => {

@@ -48,8 +48,8 @@ export function evaluateReaction(cat: Cat, p: Perception): ReactionType | null {
     return 'watch';
   }
 
-  // 对方进入关注距离且正在接近
-  if (p.distance <= ATTENTION_RADIUS && p.approaching) {
+  // 对方进入关注距离（随警觉性缩放）且正在接近
+  if (p.distance <= getAttentionRadius(cat) && p.approaching) {
     const personality = cat.personality;
     // 胆小且不够贪玩的猫先逃跑；力竭的猫跑不动，降级为注视
     if (personality.bravery < 50 && personality.playfulness < 70) {
@@ -68,6 +68,11 @@ export function evaluateReaction(cat: Cat, p: Perception): ReactionType | null {
 // 当前状态是否可被反应层打断
 export function canInterrupt(action: CatActionState): boolean {
   return INTERRUPTABLE_ACTIONS.has(action);
+}
+
+// 注意力半径：随警觉性缩放（60-120px）。钝感猫注意不到远处的接近，神经质猫眼观六路
+export function getAttentionRadius(cat: Cat): number {
+  return ATTENTION_RADIUS * (0.5 + 0.5 * (cat.personality.alertness / 100));
 }
 
 // 对方是否可被作为反应对象（睡着/躲藏的猫不引发反应）
