@@ -189,6 +189,8 @@ export interface Cat {
   // 感知-反应层
   reactionCooldown: number; // 反应冷却计时器（帧）
   lastPerceivedDistance: number | null; // 上一帧感知到的对方距离（用于接近判定）
+  // 体力系统（驱力）
+  energy: number; // 体力值（0-100）
   // 个性系统
   personality: CatPersonality; // 猫咪个性
 }

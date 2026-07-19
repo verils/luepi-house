@@ -28,6 +28,7 @@
     <p><strong>位置:</strong> ({Math.round(cat.x)}, {Math.round(cat.y)})</p>
     <p><strong>动作:</strong> {cat.action}</p>
     <p><strong>情绪:</strong> {moodName} ({Math.round(cat.mood.value)})</p>
+    <p><strong>体力:</strong> {Math.round(cat.energy)}</p>
     <p><strong>碰撞半径:</strong> {cat.collisionRadius}px</p>
     <p><strong>交互半径:</strong> {cat.interactionRadius}px</p>
   </div>

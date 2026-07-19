@@ -2,6 +2,7 @@ import { CAT_VISUAL_SIZE } from '../game/types';
 import type { Cat, CatPersonality } from '../game/types';
 import { createPersonality } from '../game/personality';
 import { createMoodState } from '../game/mood-system';
+import { createEnergy } from '../game/cat-energy';
 
 export interface CatConfig {
   id: string;
@@ -88,6 +89,7 @@ export function createCatFromConfig(config: CatConfig, x: number, y: number): Ca
     actionSwitchTimer: 0,
     reactionCooldown: 0,
     lastPerceivedDistance: null,
+    energy: createEnergy(),
     personality: createPersonality(config.personality),
   };
 }

@@ -38,6 +38,7 @@ function createTestCat(overrides: Partial<Cat> = {}): Cat {
     actionSwitchTimer: 0,
     reactionCooldown: 0,
     lastPerceivedDistance: null,
+    energy: 100,
     personality: {
       curiosity: 50,
       energy: 50,
@@ -170,6 +171,24 @@ describe('evaluateReaction', () => {
     expect(
       evaluateReaction(cat, makePerception({ distance: ATTENTION_RADIUS + 1 }))
     ).toBeNull();
+  });
+
+  it('体力不足时追逐降级为注视', () => {
+    const cat = createTestCat({
+      energy: 20,
+      personality: { ...createTestCat().personality, sociability: 90 },
+    });
+
+    expect(evaluateReaction(cat, makePerception())).toBe('watch');
+  });
+
+  it('力竭时逃跑降级为注视', () => {
+    const cat = createTestCat({
+      energy: 5,
+      personality: { ...createTestCat().personality, bravery: 30, playfulness: 40 },
+    });
+
+    expect(evaluateReaction(cat, makePerception())).toBe('watch');
   });
 });
 

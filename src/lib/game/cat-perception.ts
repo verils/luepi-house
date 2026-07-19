@@ -1,4 +1,5 @@
 import type { Cat, CatActionState } from './types';
+import { canChase, canFlee } from './cat-energy';
 
 // 感知-反应层常量（单位：像素 / 帧）
 export const VIEW_RADIUS = 200; // 圆形视野半径
@@ -50,13 +51,13 @@ export function evaluateReaction(cat: Cat, p: Perception): ReactionType | null {
   // 对方进入关注距离且正在接近
   if (p.distance <= ATTENTION_RADIUS && p.approaching) {
     const personality = cat.personality;
-    // 胆小且不够贪玩的猫先逃跑
+    // 胆小且不够贪玩的猫先逃跑；力竭的猫跑不动，降级为注视
     if (personality.bravery < 50 && personality.playfulness < 70) {
-      return 'flee';
+      return canFlee(cat.energy) ? 'flee' : 'watch';
     }
-    // 社交或调皮度高的猫主动发起追逐
+    // 社交或调皮度高的猫主动发起追逐；体力不足降级为注视
     if (personality.sociability >= 60 || personality.playfulness >= 60) {
-      return 'chase';
+      return canChase(cat.energy) ? 'chase' : 'watch';
     }
     return 'watch';
   }

@@ -16,6 +16,13 @@ import {
   perceive,
   REACTION_COOLDOWN,
 } from './cat-perception';
+import {
+  canChase,
+  canPlayFight,
+  getEnergyBehaviorFactor,
+  isExhausted,
+  updateEnergy,
+} from './cat-energy';
 
 const ARRIVAL_THRESHOLD = 3;
 const CAT_SEPARATION_DISTANCE = 16;
@@ -58,6 +65,7 @@ export function updateCatState(cat: Cat, ctx: StateContext, dt: number = 1): Cat
   cat.moodTimer += dt;
 
   updateMood(cat, dt);
+  cat.energy = updateEnergy(cat.energy, cat.action, dt);
 
   if (cat.actionSwitchTimer > 0) {
     cat.actionSwitchTimer -= dt;
@@ -207,17 +215,20 @@ function updateIdleState(cat: Cat, ctx: StateContext, dt: number): CatIntent[] {
   cat.idleTimer -= dt;
 
   if (cat.idleTimer <= 0) {
+    // 互动类行为的体力因子：<30 归零，30→100 线性
+    const energyFactor = getEnergyBehaviorFactor(cat.energy);
+
     // 使用加权随机选择下一个行为
     const weights: Record<string, number> = {
       idle: 30,
       moving: 40 * calculateBehaviorWeight(cat.personality, 'moving'),
       sleeping: 12 * calculateBehaviorWeight(cat.personality, 'sleeping'),
       hiding: 5 * calculateBehaviorWeight(cat.personality, 'hiding'),
-      chasing: 2 * calculateBehaviorWeight(cat.personality, 'chasing'),
+      chasing: 2 * calculateBehaviorWeight(cat.personality, 'chasing') * energyFactor,
       eating: 5 * calculateBehaviorWeight(cat.personality, 'eating'),
       drinking: 3,
       exploring: 8 * calculateBehaviorWeight(cat.personality, 'exploring'),
-      socializing: calculateBehaviorWeight(cat.personality, 'socializing'),
+      socializing: calculateBehaviorWeight(cat.personality, 'socializing') * energyFactor,
       watching: 5 * calculateBehaviorWeight(cat.personality, 'watching'),
       climbing: 4 * calculateBehaviorWeight(cat.personality, 'climbing'),
       grooming: 8 * calculateBehaviorWeight(cat.personality, 'grooming'),
@@ -332,6 +343,15 @@ function updateChasingState(cat: Cat, ctx: StateContext, dt: number): CatIntent[
     return [];
   }
 
+  // 力竭：追累了，主动放弃
+  if (isExhausted(cat.energy)) {
+    cat.action = 'idle';
+    cat.idleTimer = 120 + Math.floor(Math.random() * 120);
+    cat.actionTimer = 0;
+    cat.chaseTargetId = null;
+    return [];
+  }
+
   const target = ctx.allCats.find((c) => c.id === cat.chaseTargetId);
   if (!target) {
     cat.action = 'idle';
@@ -345,7 +365,7 @@ function updateChasingState(cat: Cat, ctx: StateContext, dt: number): CatIntent[
   const distance = Math.sqrt(dx * dx + dy * dy);
 
   if (distance < CAT_SEPARATION_DISTANCE * 1.5) {
-    if (Math.random() < PLAY_FIGHT_CHANCE) {
+    if (canPlayFight(cat.energy) && Math.random() < PLAY_FIGHT_CHANCE) {
       return enterPlayFightingState(cat, target);
     }
     if (Math.random() < GROOMING_CHANCE) {
@@ -365,6 +385,15 @@ function updateFleeingState(cat: Cat, ctx: StateContext, dt: number): void {
   if (!cat.chaseTargetId) {
     cat.action = 'idle';
     cat.idleTimer = 120 + Math.floor(Math.random() * 120);
+    return;
+  }
+
+  // 力竭：跑不动了，停下喘息
+  if (isExhausted(cat.energy)) {
+    cat.action = 'idle';
+    cat.idleTimer = 120 + Math.floor(Math.random() * 120);
+    cat.actionTimer = 0;
+    cat.chaseTargetId = null;
     return;
   }
 
@@ -425,6 +454,14 @@ function updateWatchingState(cat: Cat, ctx: StateContext): void {
 }
 
 function updatePlayFightingState(cat: Cat, ctx: StateContext): CatIntent[] {
+  // 力竭：打不动了，提前结束
+  if (isExhausted(cat.energy)) {
+    cat.action = 'idle';
+    cat.idleTimer = 60 + Math.floor(Math.random() * 120);
+    cat.actionTimer = 0;
+    cat.chaseTargetId = null;
+    return [{ type: 'want_stop_play_fighting', catId: cat.id }];
+  }
   if (cat.actionTimer > 90 + Math.random() * 90) {
     cat.action = 'idle';
     cat.idleTimer = 30 + Math.floor(Math.random() * 60);
@@ -436,6 +473,12 @@ function updatePlayFightingState(cat: Cat, ctx: StateContext): CatIntent[] {
 }
 
 function startChasing(cat: Cat, ctx: StateContext): CatIntent[] {
+  // 体力门控：体力不足时不发起追逐（防御性检查，正常路径已被权重因子拦截）
+  if (!canChase(cat.energy)) {
+    enterMovingState(cat, ctx);
+    return [];
+  }
+
   const otherCats = ctx.allCats.filter((c) => c.id !== cat.id);
   if (otherCats.length === 0) {return [];}
 
@@ -483,7 +526,7 @@ function switchExcitedAction(cat: Cat, ctx: StateContext): CatIntent[] {
   const roll = Math.random();
 
   if (distance < CAT_SEPARATION_DISTANCE * 2) {
-    if (roll < PLAY_FIGHT_CHANCE) {
+    if (canPlayFight(cat.energy) && roll < PLAY_FIGHT_CHANCE) {
       return enterPlayFightingState(cat, target);
     } else if (roll < PLAY_FIGHT_CHANCE + GROOMING_CHANCE) {
       enterGroomingState(cat);
