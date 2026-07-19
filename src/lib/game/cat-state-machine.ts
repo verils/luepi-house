@@ -23,6 +23,14 @@ import {
   isExhausted,
   updateEnergy,
 } from './cat-energy';
+import {
+  derivePOIs,
+  getArrivalAction,
+  getPOIApproachPoint,
+  POI_CHANCE,
+  selectPOI,
+  type POI,
+} from './cat-poi';
 
 const ARRIVAL_THRESHOLD = 3;
 const CAT_SEPARATION_DISTANCE = 16;
@@ -67,6 +75,11 @@ export function updateCatState(cat: Cat, ctx: StateContext, dt: number = 1): Cat
   updateMood(cat, dt);
   cat.energy = updateEnergy(cat.energy, cat.action, dt);
 
+  // nextAction 安全网：非移动状态不持有残留目的地（如反应层打断 moving 后）
+  if (cat.action !== 'moving') {
+    cat.nextAction = undefined;
+  }
+
   if (cat.actionSwitchTimer > 0) {
     cat.actionSwitchTimer -= dt;
     if (cat.actionSwitchTimer <= 0) {
@@ -102,6 +115,9 @@ export function updateCatState(cat: Cat, ctx: StateContext, dt: number = 1): Cat
       break;
     case 'grooming':
       updateGroomingState(cat, ctx);
+      break;
+    case 'eating':
+      updateEatingState(cat, ctx);
       break;
     case 'watching':
       updateWatchingState(cat, ctx);
@@ -254,36 +270,51 @@ function updateIdleState(cat: Cat, ctx: StateContext, dt: number): CatIntent[] {
         if (ctx.allCats.length > 1) {
           return startChasing(cat, ctx);
         } else {
-          enterMovingState(cat);
+          enterMovingState(cat, ctx);
         }
         break;
       case 'sleeping':
         if (ctx.catBeds.length > 0) {
           enterSleepingState(cat, ctx);
         } else {
-          enterMovingState(cat);
+          enterMovingState(cat, ctx);
         }
         break;
       case 'hiding':
         if (ctx.shelters.length > 0) {
           enterHidingState(cat, ctx);
         } else {
-          enterMovingState(cat);
+          enterMovingState(cat, ctx);
         }
         break;
-      case 'eating':
+      case 'eating': {
+        // 走向食盆，到达后进食
+        const eatPOIs = derivePOIs(ctx.furnitures, ctx.catBeds, ctx.shelters).filter((p) => p.type === 'eat');
+        const poi = selectPOI(cat, eatPOIs);
+        const point = poi ? pickApproachPoint(poi, cat, ctx) : null;
+        if (point) {
+          cat.targetX = point.x;
+          cat.targetY = point.y;
+          cat.nextAction = 'eating';
+          cat.action = 'moving';
+          cat.actionTimer = 0;
+        } else {
+          enterMovingState(cat, ctx);
+        }
+        break;
+      }
       case 'drinking':
-        // 暂时简化为移动到随机位置
-        enterMovingState(cat);
+        // 没有水碗配置，保持随机移动
+        enterMovingState(cat, ctx);
         break;
       case 'exploring':
-        enterMovingState(cat);
+        enterMovingState(cat, ctx);
         break;
       case 'socializing':
         if (ctx.allCats.length > 1) {
           return startChasing(cat, ctx);
         } else {
-          enterMovingState(cat);
+          enterMovingState(cat, ctx);
         }
         break;
       case 'watching':
@@ -295,7 +326,7 @@ function updateIdleState(cat: Cat, ctx: StateContext, dt: number): CatIntent[] {
         break;
       case 'moving':
       default:
-        enterMovingState(cat);
+        enterMovingState(cat, ctx);
         break;
     }
   }
@@ -310,11 +341,29 @@ function updateMovingState(cat: Cat, ctx: StateContext, dt: number): void {
   if (distance <= ARRIVAL_THRESHOLD) {
     cat.x = cat.targetX;
     cat.y = cat.targetY;
-    cat.action = 'idle';
-    const baseIdle = 180 + Math.floor(Math.random() * 360);
-    cat.idleTimer = Math.floor(baseIdle * getIdleDurationModifier(cat.personality));
+    // 消费 nextAction（POI 目的地携带的到达后行为）
+    const next = cat.nextAction;
+    cat.nextAction = undefined;
     cat.actionTimer = 0;
-    return;
+    switch (next) {
+      case 'sleeping':
+      case 'hiding':
+      case 'eating':
+        cat.action = next;
+        return;
+      case 'watching':
+        enterWatchingState(cat, ctx);
+        return;
+      case 'idle':
+        // POI 停留：较长的休息
+        cat.action = 'idle';
+        cat.idleTimer = Math.floor((240 + Math.floor(Math.random() * 240)) * getIdleDurationModifier(cat.personality));
+        return;
+      default:
+        cat.action = 'idle';
+        cat.idleTimer = Math.floor((180 + Math.floor(Math.random() * 360)) * getIdleDurationModifier(cat.personality));
+        return;
+    }
   }
 
   moveToward(cat, cat.targetX, cat.targetY, getEffectiveSpeed(cat), ctx, dt);
@@ -432,6 +481,14 @@ function updateFleeingState(cat: Cat, ctx: StateContext, dt: number): void {
 }
 
 function updateGroomingState(cat: Cat, ctx: StateContext): void {
+  if (cat.actionTimer > 60 + Math.random() * 60) {
+    cat.action = 'idle';
+    cat.idleTimer = 30 + Math.floor(Math.random() * 60);
+    cat.actionTimer = 0;
+  }
+}
+
+function updateEatingState(cat: Cat, ctx: StateContext): void {
   if (cat.actionTimer > 60 + Math.random() * 60) {
     cat.action = 'idle';
     cat.idleTimer = 30 + Math.floor(Math.random() * 60);
@@ -574,6 +631,24 @@ function enterWatchingState(cat: Cat, ctx: StateContext): void {
 }
 
 function enterMovingState(cat: Cat, ctx?: StateContext): void {
+  // POI 目的地偏好：有上下文时 70% 走向兴趣点，30% 纯随机探索
+  if (ctx) {
+    const pois = derivePOIs(ctx.furnitures, ctx.catBeds, ctx.shelters);
+    if (pois.length > 0 && Math.random() < POI_CHANCE) {
+      const poi = selectPOI(cat, pois);
+      const point = poi ? pickApproachPoint(poi, cat, ctx) : null;
+      if (poi && point) {
+        cat.targetX = point.x;
+        cat.targetY = point.y;
+        cat.nextAction = getArrivalAction(cat, poi.type);
+        cat.action = 'moving';
+        cat.actionTimer = 0;
+        return;
+      }
+    }
+  }
+
+  // 纯随机选点（保留探索感，也是 POI 选点失败时的回退）
   const margin = cat.visualWidth;
   const house = ctx?.house;
   const houseX = house?.x ?? 0;
@@ -590,8 +665,35 @@ function enterMovingState(cat: Cat, ctx?: StateContext): void {
 
   cat.targetX = tx;
   cat.targetY = ty;
+  cat.nextAction = undefined;
   cat.action = 'moving';
   cat.actionTimer = 0;
+}
+
+// 为 POI 挑选可到达的停靠点：在房屋内且不在任何实体内部，最多重试 3 次
+function pickApproachPoint(poi: POI, cat: Cat, ctx: StateContext): { x: number; y: number } | null {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const p = getPOIApproachPoint(poi, cat.collisionRadius + 6);
+    if (
+      p.x < ctx.house.x || p.x > ctx.house.x + ctx.house.width ||
+      p.y < ctx.house.y || p.y > ctx.house.y + ctx.house.height
+    ) {
+      continue;
+    }
+    if (!isPointInSolids(p.x, p.y, ctx.solidObjects)) {
+      return p;
+    }
+  }
+  return null;
+}
+
+function isPointInSolids(x: number, y: number, solidObjects: readonly SolidObject[]): boolean {
+  for (const obj of solidObjects) {
+    if (x >= obj.x && x <= obj.x + obj.width && y >= obj.y && y <= obj.y + obj.height) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function isInsideObject(x: number, y: number, ctx: StateContext): boolean {
@@ -608,37 +710,53 @@ function isInsideObject(x: number, y: number, ctx: StateContext): boolean {
 }
 
 function enterSleepingState(cat: Cat, ctx: StateContext): void {
-  if (ctx.catBeds.length > 0) {
-    const bed = ctx.catBeds[0];
-    cat.targetX = bed.x + bed.width / 2;
-    cat.targetY = bed.y + bed.height / 2;
-  } else {
-    cat.targetX = cat.x;
-    cat.targetY = cat.y;
+  // 走向休息点（猫窝/沙发/软垫按权重竞争），到达后再睡，不再瞬移
+  const restPOIs = derivePOIs(ctx.furnitures, ctx.catBeds, ctx.shelters).filter((p) => p.type === 'rest');
+  const poi = selectPOI(cat, restPOIs);
+  const point = poi ? pickApproachPoint(poi, cat, ctx) : null;
+  if (point) {
+    cat.targetX = point.x;
+    cat.targetY = point.y;
+    cat.nextAction = 'sleeping';
+    cat.action = 'moving';
+    cat.actionTimer = 0;
+    return;
   }
+  // 无可用休息点：原地睡
+  cat.targetX = cat.x;
+  cat.targetY = cat.y;
+  cat.nextAction = undefined;
   cat.action = 'sleeping';
   cat.actionTimer = 0;
 }
 
 function enterHidingState(cat: Cat, ctx: StateContext): void {
-  if (ctx.shelters.length > 0) {
-    let nearest = ctx.shelters[0];
-    let minDist = Infinity;
-    for (const s of ctx.shelters) {
-      const dx = (s.x + s.width / 2) - cat.x;
-      const dy = (s.y + s.height / 2) - cat.y;
-      const d = dx * dx + dy * dy;
-      if (d < minDist) {
-        minDist = d;
-        nearest = s;
-      }
+  // 走向最近的躲藏点，到达后再躲，不再瞬移
+  const hidePOIs = derivePOIs(ctx.furnitures, ctx.catBeds, ctx.shelters).filter((p) => p.type === 'hide');
+  let nearest: POI | null = null;
+  let minDist = Infinity;
+  for (const p of hidePOIs) {
+    const dx = (p.x + p.width / 2) - cat.x;
+    const dy = (p.y + p.height / 2) - cat.y;
+    const d = dx * dx + dy * dy;
+    if (d < minDist) {
+      minDist = d;
+      nearest = p;
     }
-    cat.targetX = nearest.x + nearest.width / 2;
-    cat.targetY = nearest.y + nearest.height / 2;
-  } else {
-    cat.targetX = cat.x;
-    cat.targetY = cat.y;
   }
+  const point = nearest ? pickApproachPoint(nearest, cat, ctx) : null;
+  if (point) {
+    cat.targetX = point.x;
+    cat.targetY = point.y;
+    cat.nextAction = 'hiding';
+    cat.action = 'moving';
+    cat.actionTimer = 0;
+    return;
+  }
+  // 无可用躲藏点：原地躲
+  cat.targetX = cat.x;
+  cat.targetY = cat.y;
+  cat.nextAction = undefined;
   cat.action = 'hiding';
   cat.actionTimer = 0;
 }

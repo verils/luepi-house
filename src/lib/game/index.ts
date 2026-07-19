@@ -8,6 +8,7 @@ export * from './cat-state-machine';
 export * from './cat-intent-resolver';
 export * from './cat-perception';
 export * from './cat-energy';
+export * from './cat-poi';
 export * from './texture-manager';
 export * from './time-system';
 export * from './personality';
