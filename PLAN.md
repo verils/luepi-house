@@ -82,15 +82,15 @@ type CatIntent =
 ## 问题处理计划表（2026-07-18 重排）
 
 > 已完成的修复（store 响应式 + UI 同步节流、deltaTime 时间驱动、moodTimer 更新）不再保留在表中。
-> 状态图例：⬜ 待处理 / 🔵 进行中 / ✅ 完成。执行顺序：A1 → A2 → B1-B3 → C1-C5 → D1-D4。
+> 状态图例：⬜ 待处理 / 🔵 进行中 / ✅ 完成。执行顺序：A1 → A2 → A3(含B3) → B1-B2 → C1-C5 → D1-D4。
 
 | 标号 | 问题 | 影响程度 | 处理难度 | 状态 |
 |------|------|:---:|:---:|:---:|
 | A1 | 碰撞解析统一（去重复解析，交互状态不再跳过固体碰撞） | 高 | 低 | ✅ |
 | A2 | 实时感知互动 AI（感知-反应层，帧级动作切换） | 高 | 高 | ⬜ |
+| A3 | 移动目的地偏好系统（POI，含 B3 瞬移修复） | 高 | 中 | ⬜ |
 | B1 | GameCanvas 事件监听器泄漏 | 中 | 低 | ⬜ |
 | B2 | App.svelte 挂载时序依赖 | 中 | 低 | ⬜ |
-| B3 | 睡觉/躲藏瞬移到目标点 | 中 | 中 | ⬜ |
 | C1 | debugMode 运行时切换不生效 | 低 | 低 | ⬜ |
 | C2 | 点击空白处误触发拖拽 | 低 | 低 | ⬜ |
 | C3 | 天气误报变化事件 + 背景色过渡未实现 | 低 | 低 | ⬜ |
@@ -118,6 +118,15 @@ type CatIntent =
 - **风险**：频繁打断导致行为神经质 → cooldown + 白名单约束；测试复杂化 → 感知/反应全部纯函数化
 - **验收**：一只猫接近时另一只在 1 秒内产生可见反应（注视/逃离/反追）；无打断死循环；现有测试全过 + 感知/反应纯函数测试
 
+### A3. 移动目的地偏好系统（含 B3）
+
+- **价值**：与 A2 并列的"生命感"另一支柱——A2 解决"猫对猫"的反应，A3 解决"猫对环境"的目的性。当前 `enterMovingState`（cat-state-machine.ts:446）全图纯随机选点，sleeping 固定去第一个猫窝、hiding 去最近庇护所且均瞬移（原 B3），猫从不在沙发/茶几/猫爬架停留
+- **设计（草案，实施前定稿）**：
+  - **POI 系统**：从 furnitures/catBeds/shelters 派生 `{ id, type: 'rest'|'observe'|'eat'|'hide', x, y }`，不新增配置。映射：sofa/猫窝/软垫→rest；猫爬架/茶几→observe；食盆→eat；纸箱→hide
+  - **目的地选择**：约 70% 选 POI、30% 纯随机（保留探索感）；POI 权重个性驱动（energy→observe、patience/cleanliness→rest、appetite→eat、bravery 低→hide）；情绪修正（depressed→rest/hide 加权）
+  - **到达后行为（吸收 B3）**：Cat 增加 `nextAction?: CatActionState`；updateMovingState 到达后检查并切换。rest 点→sleeping/长 idle；observe 点→watching/idle；eat 点→eating；hide 点→hiding。enterSleepingState/enterHidingState 改为选 POI + action='moving' + nextAction，不再瞬移
+- **验收**：猫明显在家具/猫窝/纸箱附近停留瞌睡；不再瞬移；两只猫因个性差异呈现不同常驻点；测试全过 + POI 选择纯函数测试
+
 ### B1. GameCanvas 事件监听器泄漏
 
 - **问题**：canvas 的 mousedown/mousemove/mouseup/mouseleave/wheel 五个监听器（GameCanvas.svelte:56-60）在 onDestroy 中未移除
@@ -127,11 +136,6 @@ type CatIntent =
 
 - **问题**：onMount 中 `gameRenderer!.getCamera()`（App.svelte:37 附近）依赖子组件先挂载的隐式时序
 - **方案**：onMount 只做 initializeGame()；相机初始化与 gameLoop 启动移入 `$effect`，监听 gameRenderer 非 null 后执行一次（标志位防重入）
-
-### B3. 睡觉/躲藏瞬移到目标点
-
-- **问题**：enterSleepingState/enterHidingState 直接切 action，猫瞬移到床/庇护所中心（cat-state-machine.ts:474、:487）
-- **方案**：Cat 增加 `nextAction?` 字段；两个 enter 函数改为设 target + action='moving' + nextAction；updateMovingState 到达后切换
 
 ### C1-C5（中优先级，方案从简）
 
