@@ -18,13 +18,24 @@
 
   let canvas: HTMLCanvasElement;
   let isDragging = false;
+  let pendingDrag = false;
+  let downX = 0;
+  let downY = 0;
   let lastMouseX = 0;
   let lastMouseY = 0;
 
   let currentState: any = null;
   const unsubGameState = gameState.subscribe((s) => (currentState = s));
-  let isDebug = false;
+  let isDebug = $state(false);
   const unsubDebug = debugMode.subscribe((d) => (isDebug = d));
+
+  // debugMode 运行时切换：同步到渲染器并重绘
+  $effect(() => {
+    if (renderer) {
+      renderer.setDebugMode(isDebug);
+      if (currentState) renderer.render(currentState);
+    }
+  });
 
   onDestroy(() => {
     unsubGameState();
@@ -66,6 +77,11 @@
   });
 
   onDestroy(() => {
+    canvas.removeEventListener('mousedown', handleMouseDown);
+    canvas.removeEventListener('mousemove', handleMouseMove);
+    canvas.removeEventListener('mouseup', handleMouseUp);
+    canvas.removeEventListener('mouseleave', handleMouseLeave);
+    canvas.removeEventListener('wheel', handleWheel);
     window.removeEventListener('resize', handleResize);
     document.removeEventListener('keydown', handleKeyDown);
   });
@@ -83,14 +99,30 @@
       return;
     }
     oncatdeselect();
-    isDragging = true;
-    lastMouseX = e.clientX;
-    lastMouseY = e.clientY;
-    canvas.style.cursor = 'grabbing';
+    // 不立即进入拖拽：累计位移超过 4px 才算 pan（click/drag 消歧）
+    pendingDrag = true;
+    downX = e.clientX;
+    downY = e.clientY;
   }
 
   function handleMouseMove(e: MouseEvent) {
-    if (!isDragging || !renderer) return;
+    if (!renderer) {
+      return;
+    }
+    if (!isDragging) {
+      if (!pendingDrag) {
+        return;
+      }
+      if (Math.hypot(e.clientX - downX, e.clientY - downY) <= 4) {
+        return;
+      }
+      isDragging = true;
+      pendingDrag = false;
+      lastMouseX = e.clientX;
+      lastMouseY = e.clientY;
+      canvas.style.cursor = 'grabbing';
+      return;
+    }
     const camera = renderer.getCamera();
     const deltaX = e.clientX - lastMouseX;
     const deltaY = e.clientY - lastMouseY;
@@ -102,11 +134,13 @@
 
   function handleMouseUp() {
     isDragging = false;
+    pendingDrag = false;
     canvas.style.cursor = 'grab';
   }
 
   function handleMouseLeave() {
     isDragging = false;
+    pendingDrag = false;
     canvas.style.cursor = 'grab';
   }
 

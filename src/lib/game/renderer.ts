@@ -50,6 +50,13 @@ export class GameRenderer {
   }
 
   /**
+   * 运行时切换调试层显隐
+   */
+  setDebugMode(value: boolean): void {
+    this.debugMode = value;
+  }
+
+  /**
    * 渲染游戏状态
    */
   render(state: GameState): void {

@@ -23,6 +23,7 @@
   let gameRenderer = $state<GameRenderer | null>(null);
   let camera = $state<Camera | null>(null);
   let animationFrameId = 0;
+  let started = false;
 
   let fpsFrames = 0;
   let fpsLastTime = performance.now();
@@ -35,12 +36,22 @@
   });
 
   onMount(() => {
-    const state = initializeGame();
+    initializeGame();
+  });
 
-    camera = gameRenderer!.getCamera();
+  // gameRenderer 由子组件 GameCanvas 挂载后赋值；就绪后启动一次
+  // （显式响应式依赖，替代"子组件 onMount 先执行"的隐式时序）
+  $effect(() => {
+    if (!gameRenderer || started) {
+      return;
+    }
+    started = true;
+    const state = getGameState();
+    camera = gameRenderer.getCamera();
     centerCameraOnHouse();
-    gameRenderer!.render(state);
-
+    if (state) {
+      gameRenderer.render(state);
+    }
     animationFrameId = requestAnimationFrame(gameLoop);
   });
 
