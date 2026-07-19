@@ -27,6 +27,8 @@ function createTestCat(overrides: Partial<Cat> = {}): Cat {
     moodTimer: 0,
     chaseTargetId: null,
     actionSwitchTimer: 0,
+    reactionCooldown: 0,
+    lastPerceivedDistance: null,
     personality: {
       curiosity: 50,
       energy: 50,

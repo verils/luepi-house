@@ -6,6 +6,7 @@ export * from './camera';
 export * from './cat-renderer';
 export * from './cat-state-machine';
 export * from './cat-intent-resolver';
+export * from './cat-perception';
 export * from './texture-manager';
 export * from './time-system';
 export * from './personality';

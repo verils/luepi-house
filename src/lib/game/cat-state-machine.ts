@@ -9,6 +9,13 @@ import {
 } from './mood-system';
 import { getTimeModifier, weightedRandomBehavior } from './behavior-system';
 import { type EventLogState, logBehaviorEvent } from './event-log';
+import {
+  canInterrupt,
+  evaluateReaction,
+  isReactable,
+  perceive,
+  REACTION_COOLDOWN,
+} from './cat-perception';
 
 const ARRIVAL_THRESHOLD = 3;
 const CAT_SEPARATION_DISTANCE = 16;
@@ -61,6 +68,11 @@ export function updateCatState(cat: Cat, ctx: StateContext, dt: number = 1): Cat
   }
 
   let intents: CatIntent[] = [];
+  const reactionIntents = applyPerceptionReaction(cat, ctx, dt);
+  if (reactionIntents !== null) {
+    // 反应层打断了当前状态，本帧不再执行原状态更新
+    intents = reactionIntents;
+  } else {
   switch (cat.action) {
     case 'idle':
       intents = updateIdleState(cat, ctx, dt);
@@ -83,9 +95,13 @@ export function updateCatState(cat: Cat, ctx: StateContext, dt: number = 1): Cat
     case 'grooming':
       updateGroomingState(cat, ctx);
       break;
+    case 'watching':
+      updateWatchingState(cat, ctx);
+      break;
     case 'playFighting':
       intents = updatePlayFightingState(cat, ctx);
       break;
+  }
   }
 
   // 记录行为变化事件
@@ -126,6 +142,53 @@ function updateBlink(cat: Cat, dt: number): void {
       cat.isBlinking = true;
       cat.blinkTimer = 4 + Math.floor(Math.random() * 4);
     }
+  }
+}
+
+// 感知-反应层：每帧感知对方，命中条件时打断当前可打断状态。
+// 返回 null 表示未触发反应；追逐反应走意图系统，逃离/注视只修改自身。
+function applyPerceptionReaction(cat: Cat, ctx: StateContext, dt: number): CatIntent[] | null {
+  if (cat.reactionCooldown > 0) {
+    cat.reactionCooldown -= dt;
+  }
+
+  const other = ctx.allCats.find((c) => c.id !== cat.id);
+  if (!other) {
+    cat.lastPerceivedDistance = null;
+    return null;
+  }
+
+  const perception = perceive(cat, other, cat.lastPerceivedDistance);
+  cat.lastPerceivedDistance = perception ? perception.distance : null;
+
+  if (!perception) { return null; }
+  if (cat.reactionCooldown > 0) { return null; }
+  if (!canInterrupt(cat.action)) { return null; }
+  if (!isReactable(perception.otherAction)) { return null; }
+
+  const reaction = evaluateReaction(cat, perception);
+  if (!reaction) { return null; }
+
+  cat.reactionCooldown = REACTION_COOLDOWN;
+
+  switch (reaction) {
+    case 'chase': {
+      applyMoodEvent(cat.mood, 'chase_start', cat.personality, Date.now());
+      cat.chaseTargetId = other.id;
+      cat.actionSwitchTimer = getActionSwitchInterval(cat);
+      cat.action = 'chasing';
+      cat.actionTimer = 0;
+      return [{ type: 'want_chase', initiatorId: cat.id, targetId: other.id }];
+    }
+    case 'flee':
+      applyMoodEvent(cat.mood, 'flee', cat.personality, Date.now());
+      cat.action = 'fleeing';
+      cat.chaseTargetId = other.id;
+      cat.actionTimer = 0;
+      return [];
+    case 'watch':
+      enterWatchingState(cat, ctx);
+      return [];
   }
 }
 
@@ -213,6 +276,8 @@ function updateIdleState(cat: Cat, ctx: StateContext, dt: number): CatIntent[] {
         }
         break;
       case 'watching':
+        enterWatchingState(cat, ctx);
+        break;
       case 'climbing':
       case 'grooming':
         enterGroomingState(cat);
@@ -315,7 +380,7 @@ function updateFleeingState(cat: Cat, ctx: StateContext, dt: number): void {
   const dy = cat.y - chaser.y;
   const distance = Math.sqrt(dx * dx + dy * dy);
 
-  if (distance > 120) {
+  if (distance > 120 && cat.actionTimer > 30) {
     cat.action = 'idle';
     cat.idleTimer = 120 + Math.floor(Math.random() * 180);
     cat.chaseTargetId = null;
@@ -338,6 +403,20 @@ function updateFleeingState(cat: Cat, ctx: StateContext, dt: number): void {
 }
 
 function updateGroomingState(cat: Cat, ctx: StateContext): void {
+  if (cat.actionTimer > 60 + Math.random() * 60) {
+    cat.action = 'idle';
+    cat.idleTimer = 30 + Math.floor(Math.random() * 60);
+    cat.actionTimer = 0;
+  }
+}
+
+function updateWatchingState(cat: Cat, ctx: StateContext): void {
+  // 持续将注视点对准对方（供后续朝向/渲染扩展使用）
+  const other = ctx.allCats.find((c) => c.id !== cat.id);
+  if (other) {
+    cat.targetX = other.x;
+    cat.targetY = other.y;
+  }
   if (cat.actionTimer > 60 + Math.random() * 60) {
     cat.action = 'idle';
     cat.idleTimer = 30 + Math.floor(Math.random() * 60);
@@ -441,6 +520,14 @@ function enterGroomingState(cat: Cat): void {
   cat.actionTimer = 0;
   cat.targetX = cat.x;
   cat.targetY = cat.y;
+}
+
+function enterWatchingState(cat: Cat, ctx: StateContext): void {
+  const other = ctx.allCats.find((c) => c.id !== cat.id);
+  cat.action = 'watching';
+  cat.actionTimer = 0;
+  cat.targetX = other ? other.x : cat.x;
+  cat.targetY = other ? other.y : cat.y;
 }
 
 function enterMovingState(cat: Cat, ctx?: StateContext): void {

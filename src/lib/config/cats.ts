@@ -86,6 +86,8 @@ export function createCatFromConfig(config: CatConfig, x: number, y: number): Ca
     moodTimer: 0,
     chaseTargetId: null,
     actionSwitchTimer: 0,
+    reactionCooldown: 0,
+    lastPerceivedDistance: null,
     personality: createPersonality(config.personality),
   };
 }

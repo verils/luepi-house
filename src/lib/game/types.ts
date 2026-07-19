@@ -186,6 +186,9 @@ export interface Cat {
   // 追逐系统
   chaseTargetId: string | null; // 追逐目标猫的id
   actionSwitchTimer: number; // 动作切换计时器（兴奋期间使用）
+  // 感知-反应层
+  reactionCooldown: number; // 反应冷却计时器（帧）
+  lastPerceivedDistance: number | null; // 上一帧感知到的对方距离（用于接近判定）
   // 个性系统
   personality: CatPersonality; // 猫咪个性
 }
