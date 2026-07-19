@@ -1,156 +1,123 @@
 # CatHouse 项目开发计划
 
-## 📊 当前进度概览
-
 **最后更新**: 2026-07-19
-**当前阶段**: 任务 1-6 已完成；A1 碰撞统一、A2 实时感知互动 AI 已完成；下一项 A3（POI 目的地偏好）
-**已完成**: 任务 1-6（基础系统、测试优化、独立AI架构）；修复：store 响应式、deltaTime 时间驱动、moodTimer 更新；A1 碰撞统一；A2 感知-反应层
 
----
+## 当前状态
 
-## 项目计划
+基础系统、独立 AI 架构（意图事件系统）、碰撞解析统一、实时感知-反应层已完成；测试 141/141 全过，lint 0 错误、check 0 告警。
 
-本项目采用**功能驱动**的开发方式，已完成前 5 个阶段：
+## 任务总表
 
-1. ✅ 核心配置与定义
-2. ✅ 动态实体（核心）
-3. ✅ 静态世界
-4. ✅ 规则与交互
-5. ✅ 测试与优化
-6. ✅ **独立 AI 架构** - 状态机解耦，事件驱动的意图系统
+> 问题、需求、优化统一视为任务，按执行顺序以字母编号，不分类。
+> 状态图例：⬜ 待处理 / 🔵 进行中 / ✅ 完成 / 🟡 待评估。
 
----
-
-### 任务 6: 状态机解耦 — 独立 AI 架构 ✅ 已完成
-
-**目标**: 将两只猫的状态机从"共享上下文、直接互改"改为"独立 AI、事件驱动"。每只猫是独立的 agent，只修改自己的状态，通过事件系统感知对方。
-
-**设计原则**: 两只猫，两个 AI，思维和意图独立，受外界事件影响。
-
-#### 当前耦合问题
-
-| 函数 | 问题 |
-|------|------|
-| `startChasing(cat, ctx)` | 直接设置 `target.action = 'fleeing'` |
-| `reverseChase(cat, target)` | 同时设置两只猫的 action |
-| `enterPlayFightingState(cat, target)` | 同时设置两只猫的 action 和 target |
-| `updatePlayFightingState` | 结束时重置 partner 的状态 |
-| `resolveCatCollision` | 遍历 allCats 做推离 |
-| App.svelte 游戏循环 | 顺序遍历，后面的猫看到被前面猫改过的状态 |
-
-#### 设计方案：意图事件系统
-
-**核心思路**:
-1. 每只猫只修改自己 — `updateCatState` 不允许写入 `other.action` 等
-2. 事件总线 — 猫发出意图事件（"想追逐"、"想打闹"），由调度层统一处理
-3. 感知而非操控 — 猫通过只读方式感知对方（位置、状态），但不能修改
-
-**新增类型**:
-```ts
-type CatIntent =
-  | { type: 'want_chase'; targetId: string }
-  | { type: 'want_play_fight'; targetId: string }
-  | { type: 'want_reverse_chase'; targetId: string };
-```
-
-**调度流程**:
-```
-1. 猫 A 更新 → 返回 [want_chase target=B]
-2. 猫 B 更新 → 返回 []
-3. resolveIntents([want_chase]) → 检查 B 是否空闲 → 生效
-```
-
-#### 任务清单
-
-- [x] 引入 `CatIntent` 类型（`types.ts`）
-- [x] `updateCatState` 返回 `CatIntent[]`
-- [x] `startChasing` / `reverseChase` / `enterPlayFightingState` 改为返回 intent
-- [x] 游戏循环：先独立更新，再 `resolveIntents()` 统一处理
-- [x] `StateContext.allCats` 改为 `readonly Cat[]`
-- [x] 碰撞解析独立化（游戏循环中单独调用）
-- [x] 补充测试：意图收集、意图解析、独立更新
-
-**验收标准**:
-- ✅ 每只猫只修改自己的状态
-- ✅ `updateCatState` 不直接写入 other 的字段
-- ✅ 追逐/打闹通过意图系统协调
-- ✅ 猫大部分时间独立行动
-- ✅ 现有测试全部通过
-
----
-
-## 问题处理计划表（2026-07-18 重排）
-
-> 已完成的修复（store 响应式 + UI 同步节流、deltaTime 时间驱动、moodTimer 更新）不再保留在表中。
-> 状态图例：⬜ 待处理 / 🔵 进行中 / ✅ 完成。执行顺序：A1 → A2 → A3(含B3) → B1-B2 → C1-C5 → D1-D4。
-
-| 标号 | 问题 | 影响程度 | 处理难度 | 状态 |
+| 标号 | 任务 | 影响 | 难度 | 状态 |
 |------|------|:---:|:---:|:---:|
-| A1 | 碰撞解析统一（去重复解析，交互状态不再跳过固体碰撞） | 高 | 低 | ✅ |
-| A2 | 实时感知互动 AI（感知-反应层，帧级动作切换） | 高 | 高 | ✅ |
-| A3 | 移动目的地偏好系统（POI，含 B3 瞬移修复） | 高 | 中 | ⬜ |
-| B1 | GameCanvas 事件监听器泄漏 | 中 | 低 | ⬜ |
-| B2 | App.svelte 挂载时序依赖 | 中 | 低 | ⬜ |
-| C1 | debugMode 运行时切换不生效 | 低 | 低 | ⬜ |
-| C2 | 点击空白处误触发拖拽 | 低 | 低 | ⬜ |
-| C3 | 天气误报变化事件 + 背景色过渡未实现 | 低 | 低 | ⬜ |
-| C4 | applyWeatherEffect 空实现（天气无视觉表现） | 低 | 低 | ⬜ |
-| C5 | 测试缺口（tile-map / renderer / 组件） | 中 | 中 | ⬜ |
-| D1 | darkenPattern 缓存 key 冲突（潜伏） | 低 | 低 | ⬜ |
-| D2 | 调试层未处理 DPR | 低 | 低 | ⬜ |
-| D3 | index.html title、README 与实际对齐 | 低 | 低 | ⬜ |
-| D4 | 类型内联 import、init.ts as any、lint curly 清理 | 低 | 低 | ⬜ |
+| A | 体力系统（驱力 MVP） | 高 | 中 | ⬜ |
+| B | POI 移动目的地偏好（含睡觉/躲藏瞬移修复） | 高 | 中 | ⬜ |
+| C | GameCanvas 事件监听器泄漏 | 中 | 低 | ⬜ |
+| D | App.svelte 挂载时序依赖 | 中 | 低 | ⬜ |
+| E | debugMode 运行时切换不生效 | 低 | 低 | ⬜ |
+| F | 点击空白处误触发拖拽 | 低 | 低 | ⬜ |
+| G | 天气误报变化事件 + 背景色过渡未实现 | 低 | 低 | ⬜ |
+| H | applyWeatherEffect 空实现（天气无视觉表现） | 低 | 低 | ⬜ |
+| I | 测试缺口（tile-map / renderer / 组件） | 中 | 中 | ⬜ |
+| J | darkenPattern 缓存 key 冲突（潜伏） | 低 | 低 | ⬜ |
+| K | 调试层未处理 DPR | 低 | 低 | ⬜ |
+| L | index.html title、README 与实际对齐 | 低 | 低 | ⬜ |
+| M | 类型内联 import、init.ts as any、lint curly 清理 | 低 | 低 | ⬜ |
+| N | 第二驱力维度（饥饿/饱腹） | 中 | 中 | 🟡 |
 
-### A1. 碰撞解析统一（A2 的前置）
+## 任务详情
 
-- **问题**：moveToward 内（cat-state-machine.ts:531）与 updateCatState 末尾（:100）重复解析固体碰撞；追逐/逃跑/打闹状态整体跳过碰撞（:98），猫会穿模、卡进家具
-- **方案**：移除 moveToward 内固体碰撞，统一在 updateCatState 末尾执行一次；固体碰撞对所有状态生效；猫间分离仅非交互状态（追逐/打闹需要贴身）
-- **理由**：重复解析导致推离力度不稳定；交互状态穿模会直接破坏 A2 实时互动的观感
+### A. 体力系统（驱力 MVP）
 
-### A2. 实时感知互动 AI（新需求）
+- **背景**：当前互动过密的根源是反应层纯几何触发（120px 内接近即反应）、冷却仅 1.5s、无行为记忆，形成"追→逃→再相遇→再追"紧密循环。纯时钟方案（长/短间隔）两难，频率应由内部状态决定
+- **方案**：新模块 `cat-energy.ts`（纯函数，仿 mood-system 模式）。`Cat.energy` 0-100，初始 70+随机 20；恢复 sleeping +0.5 / hiding +0.25 / eat,drink +0.15 / idle,watching +0.12 / grooming +0.08（每帧，dt 缩放）；消耗 moving,exploring -0.06 / climbing -0.15 / fleeing -0.35 / chasing -0.45 / playFighting -0.6。门控：chase≥30、playFight≥25、flee≥10、力竭≤10。接入：updateCatState 每帧更新；反应层 chase/flee 需体力，不足降级 watch；idle 决策 chasing/socializing 权重 × 体力因子（<30 归零）；playFight 发起前检查；chasing/fleeing/playFighting 力竭主动回 idle；InfoPanel 加体力行
+- **理由**：互动过密的本质是"行为零成本"——追逐打闹没有任何内生代价，时钟冷却只能固定节奏、无法感知猫的状态。让高成本行为消耗体力，频率自然由"赚得起才玩"决定；打闹后休静期是体力消耗的涌现效果，无需单设冷却计时器（单设计时器是两个系统管同一件事，调参会打架）。只做单维度：每加一个驱力维度，权重组合与调参复杂度乘法增长，且体力一个维度已能覆盖当前痛点（多维评估见 N）
+- **验收**：低体力猫不发起互动、力竭猫追累了会放弃；一次互动后双方进入可观察的低体力行为期；测试全过 + 能量纯函数/集成测试
 
-- **价值**：当前猫是秒级决策的随机状态机（idle 结束才决策，互动权重 ≈1.7%，决策不看对方位置状态）。本任务把它升级为帧级感知-反应的双独立 AI，是"观察两只猫互动"这一核心玩法的质变，并为中期更复杂行为打底
-- **设计（草案，实施前定稿）**：不推翻状态机，叠加感知-反应层
-  - 每帧 `perceive(cat, ctx)` 纯函数：圆形视野 VIEW_RADIUS=200px，产出视野内另一只猫的距离/action/是否在接近（用两帧距离差估算）
-  - `evaluateReaction(cat, perception)` 纯函数：对方进入关注距离 ≈120px 且接近 → 按个性分支（sociability/playfulness 高→want_chase；bravery 低→短促 fleeing；否则→watching 1-2 秒）；对方在视野内打闹 → watching 围观
-  - 打断白名单：可打断 idle/moving/grooming/watching/exploring；不可打断 sleeping/hiding/playFighting/eating/drinking；REACTION_COOLDOWN=60-120 帧防抖动
-  - 真正实现 watching 状态（当前被映射到 grooming）；自身反应直接切状态，追逐走现有 intent 系统
-- **风险**：频繁打断导致行为神经质 → cooldown + 白名单约束；测试复杂化 → 感知/反应全部纯函数化
-- **验收**：一只猫接近时另一只在 1 秒内产生可见反应（注视/逃离/反追）；无打断死循环；现有测试全过 + 感知/反应纯函数测试
+### B. POI 移动目的地偏好（含瞬移修复）
 
-### A3. 移动目的地偏好系统（含 B3）
-
-- **价值**：与 A2 并列的"生命感"另一支柱——A2 解决"猫对猫"的反应，A3 解决"猫对环境"的目的性。当前 `enterMovingState`（cat-state-machine.ts:446）全图纯随机选点，sleeping 固定去第一个猫窝、hiding 去最近庇护所且均瞬移（原 B3），猫从不在沙发/茶几/猫爬架停留
-- **设计（草案，实施前定稿）**：
+- **价值**：与体力系统互补——体力决定"做什么"，POI 决定"去哪做"。当前 `enterMovingState` 全图纯随机选点，sleeping 固定去第一个猫窝、hiding 去最近庇护所且均瞬移（原 B3），猫从不在沙发/茶几/猫爬架停留
+- **方案（草案，实施前定稿）**：
   - **POI 系统**：从 furnitures/catBeds/shelters 派生 `{ id, type: 'rest'|'observe'|'eat'|'hide', x, y }`，不新增配置。映射：sofa/猫窝/软垫→rest；猫爬架/茶几→observe；食盆→eat；纸箱→hide
-  - **目的地选择**：约 70% 选 POI、30% 纯随机（保留探索感）；POI 权重个性驱动（energy→observe、patience/cleanliness→rest、appetite→eat、bravery 低→hide）；情绪修正（depressed→rest/hide 加权）
-  - **到达后行为（吸收 B3）**：Cat 增加 `nextAction?: CatActionState`；updateMovingState 到达后检查并切换。rest 点→sleeping/长 idle；observe 点→watching/idle；eat 点→eating；hide 点→hiding。enterSleepingState/enterHidingState 改为选 POI + action='moving' + nextAction，不再瞬移
+  - **目的地选择**：约 70% 选 POI、30% 纯随机（保留探索感）；POI 权重个性驱动 + 体力接入（低体力→rest 加权）；情绪修正（depressed→rest/hide 加权）
+  - **到达后行为（吸收瞬移修复）**：Cat 增加 `nextAction?: CatActionState`；updateMovingState 到达后检查并切换。rest→sleeping/长 idle；observe→watching/idle；eat→eating；hide→hiding。enterSleepingState/enterHidingState 改为选 POI + action='moving' + nextAction，不再瞬移
+- **理由**：派生而非新增 POI 配置——家具数据已含类型和位置，单一数据源避免两处维护不同步。70/30 而非全 POI——全 POI 会让猫像钉死在家具上，丧失探索游走和偶然相遇的趣味；30% 随机是"生活感"的来源。nextAction 而非新增移动子状态——复用现有 moving 的移动/碰撞/到达检测逻辑，最小侵入；睡觉/躲藏改为"走过去再触发"，瞬移修复作为副产物自然落地，不需单独任务
 - **验收**：猫明显在家具/猫窝/纸箱附近停留瞌睡；不再瞬移；两只猫因个性差异呈现不同常驻点；测试全过 + POI 选择纯函数测试
 
-### B1. GameCanvas 事件监听器泄漏
+### C. GameCanvas 事件监听器泄漏
 
-- **问题**：canvas 的 mousedown/mousemove/mouseup/mouseleave/wheel 五个监听器（GameCanvas.svelte:56-60）在 onDestroy 中未移除
+- **问题**：canvas 的 mousedown/mousemove/mouseup/mouseleave/wheel 五个监听器（GameCanvas.svelte:56-60）在 onDestroy 中未移除（onDestroy 只清理了 window resize 和 document keydown，GameCanvas.svelte:68-71）
 - **方案**：onDestroy 补全五个 removeEventListener
+- **理由**：canvas 元素随组件销毁后其上监听器通常能被 GC，但这是依赖隐式行为——HMR 热更新、组件未来改为可显隐切换（不销毁重建）等场景下会累积重复绑定，且与其他两个监听器的显式清理风格不一致。显式移除是确定性的资源管理，五行代码成本极低，无替代方案可言
 
-### B2. App.svelte 挂载时序依赖
+### D. App.svelte 挂载时序依赖
 
-- **问题**：onMount 中 `gameRenderer!.getCamera()`（App.svelte:37 附近）依赖子组件先挂载的隐式时序
+- **问题**：onMount 中 `gameRenderer!.getCamera()`（App.svelte:40-44）依赖"子组件 onMount 先于父组件执行"的隐式时序——目前能跑只是因为 Svelte 恰好这个顺序
 - **方案**：onMount 只做 initializeGame()；相机初始化与 gameLoop 启动移入 `$effect`，监听 gameRenderer 非 null 后执行一次（标志位防重入）
+- **理由**：非空断言 `!` 掩盖了 renderer 可能为 null 的真实类型，组件结构稍变（如 GameCanvas 外再包一层条件渲染）就会运行时空引用崩溃。改 `$effect` 把隐式时序约定变成显式响应式依赖：renderer 何时就绪何时启动，顺序由数据流保证而非生命周期巧合
 
-### C1-C5（中优先级，方案从简）
+### E. debugMode 运行时切换不生效
 
-- **C1**：GameRenderer 增加 setDebugMode()，GameCanvas 用 $effect 随 isDebug 调用
-- **C2**：handleMouseDown 记录按下位置，累计位移 >4px 才 pan
-- **C3**：updateWeather 天气未变时返回 false；getWeatherBackgroundColor 保存 previous 天气并插值（复用 time-system 的 interpolateColor）
-- **C4**：applyWeatherEffect 轻量实现：按天气类型全屏轻色调叠加（opacity ≤ 0.1）
-- **C5**：优先补 tile-map.test.ts（getWallRects 合并、getFloorBounds、isWalkable、序列化往返）
+- **问题**：isDebug 只在 onMount 构造时传入一次（`new GameRenderer(canvas, isDebug)`，GameCanvas.svelte:54），之后 debugMode store 变化只更新组件局部变量，渲染器永远停留在初始值
+- **方案**：GameRenderer 增加 setDebugMode()，GameCanvas 用 $effect 随 isDebug 调用
+- **理由**：构造注入只发生一次，而 debugMode 是运行期可变状态，两者生命周期不匹配。加 setter 而非改构造器重造渲染器：渲染器持有 pattern 缓存等资源，重建代价大且无必要；$effect 订阅是 Svelte 5 响应式同步外部系统的标准做法
 
-### D1-D4（低优先级，方案从简）
+### F. 点击空白处误触发拖拽
 
-- **D1**：darkenPattern 缓存 key 改为 `${patternKey}_${factor}`
-- **D2**：renderDebugLayers 宽高除以 devicePixelRatio
-- **D3**：index.html title 改 CatHouse；README 的 static→public、pnpm 版本以 package.json 为准
-- **D4**：types.ts 内联 import 改显式 type import；init.ts as any 改 ?? FloorType.WOOD；pnpm lint --fix
+- **问题**：handleMouseDown 在空白处立即 `isDragging = true`（GameCanvas.svelte:86），之后 handleMouseMove 对任意微小位移都执行 pan——用户"点击空白取消选中"时手抖 1-2px 就变成视图平移
+- **方案**：handleMouseDown 记录按下位置，累计位移 >4px 才进入 pan
+- **理由**：这是经典的 click/drag 消歧问题，业界标准解就是位移阈值（常见 3-5px）。4px 内牺牲的微小平移不可感知，换来点击语义的确定性；不改事件模型、不加计时器，复杂度最低
+
+### G. 天气误报变化事件 + 背景色过渡未实现
+
+- **问题**：updateWeather 在 duration 到期时，即使抽中的新天气与当前相同也 `return true`（weather-system.ts:44-51），App.svelte 据此记录"天气变为X"，产生与当前天气相同的假事件；getWeatherBackgroundColor 直接返回目标色（weather-system.ts:93-100），transitionProgress 未参与颜色插值
+- **方案**：updateWeather 天气未变时返回 false；getWeatherBackgroundColor 保存 previous 天气并插值（复用 time-system 的 interpolateColor）
+- **理由**：误报根因是"时长到期"与"天气变化"两个事件被混为一个返回值，拆开即修复，无需改事件结构。插值复用 time-system 已有的颜色数学而非新写一套，保持单一实现；transitionProgress 已是现成字段，只是没被用上
+
+### H. applyWeatherEffect 空实现（天气无视觉表现）
+
+- **问题**：applyWeatherEffect 是空函数（renderer.ts:186-188），天气对游戏画面毫无影响——配合 G，天气系统存在但完全不可见
+- **方案**：轻量实现：按天气类型全屏轻色调叠加（opacity ≤ 0.1）
+- **理由**：目标是"最小可见实现"而非完整天气特效。色调叠加一次 fillRect 即可让雨天/阴天可感知，opacity 上限 0.1 保证不干扰猫的辨识度；雨雪粒子、闪电等属于中长期渲染升级，现在做性价比低且会放大每帧渲染成本
+
+### I. 测试缺口（tile-map / renderer / 组件）
+
+- **问题**：tile-map.ts、renderer.ts、Svelte 组件均无测试
+- **方案**：优先补 tile-map.test.ts（getWallRects 合并、getFloorBounds、isWalkable、序列化往返）
+- **理由**：tile-map 承载墙体合并、可走性判定等核心几何逻辑，任务 A/B（体力恢复点、POI 选点、碰撞）都建立在它之上，无测试则后续改动没有安全网；且它是纯数据逻辑，断言稳定、性价比最高。renderer 直接操作 Canvas 像素、组件依赖 DOM 生命周期，这两类测试断言脆弱、维护成本高，暂缓是投入产出权衡，不是遗漏
+
+### J. darkenPattern 缓存 key 冲突（潜伏）
+
+- **问题**：darkenPattern 缓存 key 只有 `${factor}`（renderer.ts:403），不同源 pattern（木地板/地毯/瓷砖纹理）共享同一 key——第二种纹理请求相同 factor 时会错误命中第一种纹理的缓存。目前仅墙体以一种 factor 调用所以尚未爆发
+- **方案**：缓存 key 改为 `${patternKey}_${factor}`（调用处传入纹理标识）
+- **理由**：这是正确性 bug 而非性能问题，只是调用点单一才潜伏。修复只需让 key 包含纹理身份，不改变缓存结构；留着不修则下一个使用 darkenPattern 的特性（如 H 的天气叠加若复用）会踩出难以排查的渲染错误
+
+### K. 调试层未处理 DPR
+
+- **问题**：renderDebugLayers 用 `this.canvas.width`（物理像素）计算可视区域（renderer.ts:195-196），但 ctx 已被 `setTransform(dpr, ...)` 缩放，逻辑坐标下可视宽应为 canvas.width / dpr——dpr=2 的屏幕上调试框是真实视口的两倍大
+- **方案**：renderDebugLayers 宽高除以 devicePixelRatio
+- **理由**：canvas.width 是设备像素、camera 坐标系是 CSS 逻辑像素，两者混用必然错位，修复只是补上单位换算。仅影响调试层，不影响正式渲染路径
+
+### L. index.html title、README 与实际对齐
+
+- **问题**：index.html title 仍是脚手架默认值 "learn-svelte"（index.html:7）；README 写 `static/` 目录（实际为 `public/`）、pnpm v9（package.json engines 要求 >=9，AGENTS.md 记 v11）
+- **方案**：index.html title 改 CatHouse；README 的 static→public、pnpm 版本以 package.json 为准
+- **理由**：title 是用户可见的品牌信息；README 是人和 AI agent 的入口文档，目录名/版本写错会直接误导环境搭建和文件查找。以 package.json 为版本唯一事实源，文档引用而非复制具体版本号，避免再次漂移
+
+### M. 类型内联 import、init.ts as any、lint curly 清理
+
+- **问题**：types.ts 用内联 `import('./x')` 引用 5 处类型（types.ts:184/207/213-215）；init.ts:58 用 `as any` 强转 floorType；全仓 20 处 curly 风格告警
+- **方案**：types.ts 内联 import 改显式 `import type`；init.ts `as any` 改 `?? FloorType.WOOD` 兜底；`pnpm lint --fix`
+- **理由**：内联 import() 当初是为了绕开循环依赖，但 `import type` 在编译期擦除、不产生运行时依赖，天然免疫循环依赖，是正规做法且可读性更好。`as any` 关闭了类型检查并掩盖"配置可能缺 floorType"这一真实状态，`?? FloorType.WOOD` 既兜底又保持类型安全。curly 属风格统一，`--fix` 机械修复零风险
+
+### N. 第二驱力维度（饥饿/饱腹）🟡 待评估
+
+- **前提**：eating/drinking 当前未真实化（idle 决策中被映射为 moving），饥饿值缺少消耗/补充挂载点
+- **时机**：任务 B（POI）落地、进食真实化之后再评估是否引入；如需进一步差异化互动频率，可同时考虑"社交满足度"
+- **原则**：每加一个驱力维度，权重计算与调参复杂度乘法增长，能不加就不加
 
 ---
 
@@ -160,10 +127,7 @@ type CatIntent =
 
 #### 渲染系统升级：从 Canvas 到 Sprite Sheet（可选）
 **时机**: 当基础功能稳定后，如需提升视觉效果时考虑
-**优势**: 
-- 更精美的艺术表现
-- 更好的动画效果（帧动画）
-- GPU 加速渲染性能
+**优势**: 更精美的艺术表现；更好的动画效果（帧动画）；GPU 加速渲染性能
 
 **实施步骤**:
 1. 设计并制作猫的 PNG 精灵图集（每只猫 4 个动作 × 8 帧）
