@@ -1,9 +1,12 @@
 // 天气系统 - 仅视觉效果（窗外背景）
 
+import { interpolateColor } from './time-system';
+
 export type WeatherType = 'sunny' | 'cloudy' | 'rainy' | 'snowy';
 
 export interface WeatherState {
   current: WeatherType;
+  previous: WeatherType;    // 上一次天气（用于过渡插值）
   duration: number;           // 剩余持续帧数
   transitionProgress: number; // 0-1 过渡进度
 }
@@ -30,6 +33,7 @@ const WEATHER_COLORS: Record<WeatherType, string> = {
 export function createWeatherState(): WeatherState {
   return {
     current: 'sunny',
+    previous: 'sunny',
     duration: getRandomDuration(),
     transitionProgress: 1.0,
   };
@@ -40,22 +44,25 @@ export function createWeatherState(): WeatherState {
  */
 export function updateWeather(weather: WeatherState, dt: number = 1): boolean {
   weather.duration -= dt;
-  
+
   if (weather.duration <= 0) {
     const newWeather = getRandomWeather();
+    weather.duration = getRandomDuration();
+    // 仅真实变化才算天气事件：抽中相同天气不误报
     if (newWeather !== weather.current) {
+      weather.previous = weather.current;
       weather.current = newWeather;
       weather.transitionProgress = 0;
+      return true; // 天气变化
     }
-    weather.duration = getRandomDuration();
-    return true; // 天气变化
+    return false;
   }
-  
+
   // 过渡动画
   if (weather.transitionProgress < 1) {
     weather.transitionProgress = Math.min(1, weather.transitionProgress + 0.02 * dt);
   }
-  
+
   return false;
 }
 
@@ -92,13 +99,13 @@ function getRandomWeather(): WeatherType {
  */
 export function getWeatherBackgroundColor(weather: WeatherState): string {
   const targetColor = WEATHER_COLORS[weather.current];
-  
+
   if (weather.transitionProgress >= 1) {
     return targetColor;
   }
-  
-  // 简单过渡：直接返回目标颜色，使用transitionProgress控制混合
-  return targetColor;
+
+  // 上一次天气 → 当前天气的平滑过渡
+  return interpolateColor(WEATHER_COLORS[weather.previous], targetColor, weather.transitionProgress);
 }
 
 /**

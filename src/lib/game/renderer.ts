@@ -4,6 +4,7 @@ import { Camera } from './camera';
 import { LuelueCatRenderer, PipiCatRenderer, DefaultCatRenderer, CatRenderer } from './cat-renderer';
 import { TextureManager } from './texture-manager';
 import { getTimeOverlayColor } from './time-system';
+import { getWeatherBackgroundColor } from './weather-system';
 import type { TileMap } from './tile-map';
 
 /**
@@ -188,10 +189,14 @@ export class GameRenderer {
   }
 
   /**
-   * 应用天气效果（窗外背景）
+   * 应用天气效果（全屏轻色调叠加，随天气变化平滑过渡）
    */
-  private applyWeatherEffect(_weather: GameState['weather']): void {
-    // 天气效果仅影响窗外背景，预留接口
+  private applyWeatherEffect(weather: GameState['weather']): void {
+    this.ctx.save();
+    this.ctx.fillStyle = getWeatherBackgroundColor(weather);
+    this.ctx.globalAlpha = 0.08;
+    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    this.ctx.restore();
   }
 
   /**
