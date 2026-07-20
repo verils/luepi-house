@@ -148,7 +148,7 @@ export class GameRenderer {
 
           // 2.5D 阴影底边
           const shadowPattern = wallPattern
-            ? this.darkenPattern(wallPattern, 0.7)
+            ? this.darkenPattern(wallPattern, 0.7, 'wall_brick')
             : null;
           ctx.fillStyle = shadowPattern ?? '#6B4E2C';
           ctx.fillRect(x, y + TILE_SIZE, TILE_SIZE, 6);
@@ -204,8 +204,10 @@ export class GameRenderer {
    */
   private renderDebugLayers(): void {
     const canvasRect = this.camera.screenToWorld(0, 0);
-    const canvasWidth = this.canvas.width / this.camera.zoom;
-    const canvasHeight = this.canvas.height / this.camera.zoom;
+    // canvas.width 是物理像素（= CSS 宽 × dpr），需换算回逻辑像素再除 zoom
+    const dpr = devicePixelRatio;
+    const canvasWidth = this.canvas.width / dpr / this.camera.zoom;
+    const canvasHeight = this.canvas.height / dpr / this.camera.zoom;
 
     this.ctx.fillStyle = 'rgba(255, 255, 0, 0.1)';
     this.ctx.fillRect(canvasRect.x, canvasRect.y, canvasWidth, canvasHeight);
@@ -410,9 +412,10 @@ export class GameRenderer {
 
   /**
    * 创建变暗的 Pattern（用于侧面阴影），带缓存
+   * patternKey 为纹理标识（如 'wall_brick'），避免不同纹理共享缓存 key
    */
-  private darkenPattern(pattern: CanvasPattern, factor: number): CanvasPattern {
-    const key = `${factor}`;
+  private darkenPattern(pattern: CanvasPattern, factor: number, patternKey: string): CanvasPattern {
+    const key = `${patternKey}_${factor}`;
     const cached = this.darkenPatternCache.get(key);
     if (cached) {return cached;}
 
