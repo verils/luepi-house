@@ -1,4 +1,4 @@
-# CatHouse Agent 指南
+# LuePi House Agent 指南
 
 本文档包含项目的技术架构、快速启动指南和项目总结，供 AI Agent 参考。
 

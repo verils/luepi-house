@@ -1,4 +1,4 @@
-# CatHouse
+# LuePi House
 
 一个基于 Svelte 5 的电子宠物猫咪应用。
 
@@ -46,7 +46,7 @@ pnpm test:coverage  # 生成覆盖率报告
 ## 📁 项目结构
 
 ```
-cat-house/
+luepi-house/
 ├── src/
 │   ├── lib/          # 共享库代码（assets、game 核心逻辑）
 │   ├── App.svelte    # 根组件

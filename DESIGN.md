@@ -1,4 +1,4 @@
-# CatHouse 设计规范
+# LuePi House 设计规范
 
 ## 一、功能概述
 
@@ -492,7 +492,7 @@ function drawFloorTexture(ctx, x, y, width, height, type) {
 #### 内容
 ```
 ┌────────────────────┐
-│ 🐱 CatHouse        │  ← 标题栏
+│ 🐱 LuePi House     │  ← 标题栏
 ├────────────────────┤
 │ ⏸️ 暂停/播放        │  ← 控制按钮
 │ 🗺️ 编辑模式        │
