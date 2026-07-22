@@ -27,23 +27,23 @@ export class TileMap {
   }
 
   getTile(col: number, row: number): Tile | null {
-    if (col < 0 || col >= this.cols || row < 0 || row >= this.rows) return null;
+    if (col < 0 || col >= this.cols || row < 0 || row >= this.rows) {return null;}
     return this.grid[row][col];
   }
 
   setTileType(col: number, row: number, type: TileType): void {
     const tile = this.getTile(col, row);
-    if (tile) tile.type = type;
+    if (tile) {tile.type = type;}
   }
 
   setFloorType(col: number, row: number, floorType: FloorType): void {
     const tile = this.getTile(col, row);
-    if (tile) tile.floorType = floorType;
+    if (tile) {tile.floorType = floorType;}
   }
 
   setRoomId(col: number, row: number, roomId: string): void {
     const tile = this.getTile(col, row);
-    if (tile) tile.roomId = roomId;
+    if (tile) {tile.roomId = roomId;}
   }
 
   isWalkable(col: number, row: number): boolean {
@@ -93,10 +93,10 @@ export class TileMap {
     for (let r = 0; r < this.rows; r++) {
       for (let c = 0; c < this.cols; c++) {
         if (this.grid[r][c].type === TileType.FLOOR) {
-          if (c < minCol) minCol = c;
-          if (c > maxCol) maxCol = c;
-          if (r < minRow) minRow = r;
-          if (r > maxRow) maxRow = r;
+          if (c < minCol) {minCol = c;}
+          if (c > maxCol) {maxCol = c;}
+          if (r < minRow) {minRow = r;}
+          if (r > maxRow) {maxRow = r;}
         }
       }
     }
@@ -120,7 +120,7 @@ export class TileMap {
 
     for (let r = 0; r < this.rows; r++) {
       for (let c = 0; c < this.cols; c++) {
-        if (visited[r][c] || this.grid[r][c].type !== TileType.WALL) continue;
+        if (visited[r][c] || this.grid[r][c].type !== TileType.WALL) {continue;}
 
         // 尽量向右扩展
         let endC = c;

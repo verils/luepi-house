@@ -1,4 +1,9 @@
 // 游戏常量定义
+import type { CatMoodState } from './mood-system';
+import type { TileMap } from './tile-map';
+import type { TimeState } from './time-system';
+import type { WeatherState } from './weather-system';
+import type { EventLogState } from './event-log';
 
 // === 公制单位（游戏逻辑） ===
 export const CELL_SIZE = 0.25; // 网格单元尺寸（米），与猫尺寸一致
@@ -133,12 +138,7 @@ export type CatActionState =
   | 'watching'
   | 'climbing';
 
-// 猫咪情绪状态（重构为连续数值）
-export interface CatMoodState {
-  value: number;           // 0-100 当前情绪值
-  decayRate: number;       // 基础衰减率
-  lastEventTime: number;   // 上次事件时间
-}
+// 猫咪情绪状态定义见 mood-system.ts（CatMoodState）
 
 // 保留旧类型用于兼容
 export type CatMood = 'low' | 'calm' | 'excited';
@@ -181,7 +181,7 @@ export interface Cat {
   blinkTimer: number; // 眨眼计时器
   isBlinking: boolean; // 是否正在眨眼
   // 情绪系统
-  mood: import('./mood-system').CatMoodState; // 当前情绪状态
+  mood: CatMoodState; // 当前情绪状态
   moodTimer: number; // 情绪持续时间（帧数）- 保留用于兼容
   // 追逐系统
   chaseTargetId: string | null; // 追逐目标猫的id
@@ -208,15 +208,15 @@ export interface ChasePair {
 export interface GameState {
   map: MapConfig; // 地图配置
   house: House; // 房屋边界（用于摄像机居中）
-  tileMap: import('./tile-map').TileMap; // 统一 tile 地图
+  tileMap: TileMap; // 统一 tile 地图
   cats: Cat[];
   shelters: Shelter[];
   catBeds: CatBed[];
   furnitures: Furniture[]; // 家具列表
   solidObjects: SolidObject[]; // 所有可碰撞对象（墙壁碰撞 + 家具）
-  time: import('./time-system').TimeState; // 时间状态
-  weather: import('./weather-system').WeatherState; // 天气状态
-  eventLog: import('./event-log').EventLogState; // 事件日志
+  time: TimeState; // 时间状态
+  weather: WeatherState; // 天气状态
+  eventLog: EventLogState; // 事件日志
 }
 
 // 猫咪意图事件（独立AI架构核心）

@@ -63,7 +63,7 @@ export function createDefaultLayout(): TileMap {
   for (const [, c1, r1, c2, r2] of rooms) {
     for (let r = r1 - 1; r <= r2 + 1; r++) {
       for (let c = c1 - 1; c <= c2 + 1; c++) {
-        if (c < 0 || c >= MAP_COLS || r < 0 || r >= MAP_ROWS) continue;
+        if (c < 0 || c >= MAP_COLS || r < 0 || r >= MAP_ROWS) {continue;}
         if (map.getTile(c, r)?.type === TileType.EMPTY) {
           map.setTileType(c, r, TileType.WALL);
         }

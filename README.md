@@ -7,7 +7,7 @@
 ### 环境要求
 
 - **Node.js**: v22.x 或更高版本
-- **pnpm**: v9.x 或更高版本
+- **pnpm**: 版本要求以 `package.json` 的 `engines` 字段为准
 
 ### 安装依赖
 
@@ -51,7 +51,7 @@ cat-house/
 │   ├── lib/          # 共享库代码（assets、game 核心逻辑）
 │   ├── App.svelte    # 根组件
 │   └── main.ts       # 应用入口
-├── static/           # 公共静态文件
+├── public/           # 公共静态文件
 └── ...
 ```
 

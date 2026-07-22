@@ -4,6 +4,7 @@ import {
   MAP_WIDTH,
   MAP_HEIGHT,
   TILE_SIZE,
+  FloorType,
   type GameState,
   type MapConfig,
   type SolidObject,
@@ -55,7 +56,7 @@ export function initGameState(): GameState {
     defaultFloor: tileMap.getTile(
       Math.floor(MAP_COLS / 2),
       Math.floor(MAP_ROWS / 2)
-    )?.floorType ?? 'wood' as any,
+    )?.floorType ?? FloorType.WOOD,
   };
 
   const cats = initCats(tileMap);
