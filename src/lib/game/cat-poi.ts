@@ -1,7 +1,7 @@
 import type { Cat, CatActionState, CatBed, Furniture, Shelter } from './types';
 import { getMoodThreshold } from './mood-system';
 import { CHASE_MIN_ENERGY } from './cat-energy';
-import { getEatUrgency } from './cat-hunger';
+import { getEatUrgency } from './cat-satiety';
 
 // POI（兴趣点）系统：从现有家具/猫窝/庇护所派生目的地，不新增配置。
 // 全部纯函数；状态机负责把选中的 POI 转成移动目标与 nextAction。
@@ -65,7 +65,7 @@ export function getPOIWeight(cat: Cat, poi: POI): number {
     case 'observe':
       return 1 + p.energy / 100 + p.curiosity / 100;
     case 'eat':
-      return (1 + p.appetite / 50) * getEatUrgency(cat.hunger); // 越饿越想去食盆
+      return (1 + p.appetite / 50) * getEatUrgency(cat.satiety); // 越饿越想去食盆
     case 'hide': {
       let w = 1 + (100 - p.bravery) / 100;
       if (depressed) { w *= 2; }

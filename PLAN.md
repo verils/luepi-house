@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-基础系统、独立 AI 架构（意图事件系统）、碰撞解析统一、实时感知-反应层、体力系统（驱力 MVP）、饥饿系统（第二驱力）、POI 目的地偏好（含瞬移修复）、UI 层修复（监听器泄漏/挂载时序/debugMode 切换/点击拖拽消歧）、天气系统修复（事件误报/色彩过渡/视觉叠加）、tile-map 测试补齐（9 用例）、渲染正确性修复（darkenPattern 缓存 key 冲突/调试层 DPR）、文档对齐（title/README/更名 LuePi House）与代码清理（类型内联 import/as any/curly）已完成；测试 205/205 全过，lint 0 错误、check 0 告警。短期任务表 A-N 全部完成，下一阶段从中期方向中选取。
+基础系统、独立 AI 架构（意图事件系统）、碰撞解析统一、实时感知-反应层、体力系统（驱力 MVP）、饱腹系统（第二驱力）、POI 目的地偏好（含瞬移修复）、UI 层修复（监听器泄漏/挂载时序/debugMode 切换/点击拖拽消歧）、天气系统修复（事件误报/色彩过渡/视觉叠加）、tile-map 测试补齐（9 用例）、渲染正确性修复（darkenPattern 缓存 key 冲突/调试层 DPR）、文档对齐（title/README/更名 LuePi House）与代码清理（类型内联 import/as any/curly）已完成；测试 205/205 全过，lint 0 错误、check 0 告警。短期任务表 A-N 全部完成，下一阶段从中期方向中选取。
 
 ## 任务总表
 
@@ -115,7 +115,7 @@
 
 ### N. 第二驱力维度（饥饿/饱腹）
 
-- **方案**：新模块 `cat-hunger.ts`（纯函数，仿 cat-energy 模式）。`Cat.hunger` 0-100（语义与体力相反：0 饱足、100 极饿），初始 20+随机 20；累积 idle/watching/grooming +0.04 / sleeping,hiding +0.02 / moving,exploring,socializing +0.06 / climbing +0.08 / chasing,fleeing +0.1 / playFighting +0.12（每帧，dt 缩放）；补充 eating -1.5 / drinking -0.2。接入：updateCatState 每帧更新；idle 决策 eating 权重 × `getEatUrgency`（不饿 0.1、阈值 60 处 1、极饿升至 3）；eat POI 权重同样乘紧迫因子（越饿越走向食盆）；InfoPanel 加饥饿行（饱足/微饿/饥饿/极饿）
+- **方案**：新模块 `cat-satiety.ts`（纯函数，仿 cat-energy 模式）。`Cat.satiety` 0-100（语义与体力一致：100 饱足、0 极饿），初始 60+随机 20；消耗 idle/watching/grooming -0.04 / sleeping,hiding -0.02 / moving,exploring,socializing -0.06 / climbing -0.08 / chasing,fleeing -0.1 / playFighting -0.12（每帧，dt 缩放）；补充 eating +1.5 / drinking +0.2。接入：updateCatState 每帧更新；idle 决策 eating 权重 × `getEatUrgency`（饱足 0.1、阈值 40 处 1、极饿升至 3）；eat POI 权重同样乘紧迫因子（越饿越走向食盆）；InfoPanel 加饱腹行（饱足/微饿/饥饿/极饿）
 - **理由**：双驱力分工——体力决定"玩不玩得起"，饥饿决定"什么时候必须吃"。紧迫因子用连续函数而非阈值开关，避免饥饿猫在食盆前突然"开关式"行为跳变；不新增打断逻辑，仅靠权重倾斜让进食自然浮现，调参面最小
 - **验收**：饥饿随时间累积、进食后回落；饥饿猫显著更频繁前往食盆；测试全过 + 饥饿纯函数/集成测试
 

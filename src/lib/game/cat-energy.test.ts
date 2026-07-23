@@ -43,7 +43,7 @@ function createTestCat(overrides: Partial<Cat> = {}): Cat {
     reactionCooldown: 0,
     lastPerceivedDistance: null,
     energy: 100,
-    hunger: 50,
+    satiety: 50,
     personality: {
       curiosity: 50,
       energy: 50,
