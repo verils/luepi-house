@@ -3,6 +3,7 @@ import type { Cat, CatPersonality } from '../game/types';
 import { createPersonality } from '../game/personality';
 import { createMoodState } from '../game/mood-system';
 import { createEnergy } from '../game/cat-energy';
+import { createHunger } from '../game/cat-hunger';
 
 export interface CatConfig {
   id: string;
@@ -90,6 +91,7 @@ export function createCatFromConfig(config: CatConfig, x: number, y: number): Ca
     reactionCooldown: 0,
     lastPerceivedDistance: null,
     energy: createEnergy(),
+    hunger: createHunger(),
     personality: createPersonality(config.personality),
   };
 }

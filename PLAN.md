@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-基础系统、独立 AI 架构（意图事件系统）、碰撞解析统一、实时感知-反应层、体力系统（驱力 MVP）、POI 目的地偏好（含瞬移修复）、UI 层修复（监听器泄漏/挂载时序/debugMode 切换/点击拖拽消歧）、天气系统修复（事件误报/色彩过渡/视觉叠加）、tile-map 测试补齐（9 用例）、渲染正确性修复（darkenPattern 缓存 key 冲突/调试层 DPR）、文档对齐（title/README）与代码清理（类型内联 import/as any/curly）已完成；测试 192/192 全过，lint 0 错误、check 0 告警。任务表仅剩 N（第二驱力维度）待评估。
+基础系统、独立 AI 架构（意图事件系统）、碰撞解析统一、实时感知-反应层、体力系统（驱力 MVP）、饥饿系统（第二驱力）、POI 目的地偏好（含瞬移修复）、UI 层修复（监听器泄漏/挂载时序/debugMode 切换/点击拖拽消歧）、天气系统修复（事件误报/色彩过渡/视觉叠加）、tile-map 测试补齐（9 用例）、渲染正确性修复（darkenPattern 缓存 key 冲突/调试层 DPR）、文档对齐（title/README/更名 LuePi House）与代码清理（类型内联 import/as any/curly）已完成；测试 205/205 全过，lint 0 错误、check 0 告警。短期任务表 A-N 全部完成，下一阶段从中期方向中选取。
 
 ## 任务总表
 
@@ -26,7 +26,7 @@
 | K | 调试层未处理 DPR | 低 | 低 | ✅ |
 | L | index.html title、README 与实际对齐 | 低 | 低 | ✅ |
 | M | 类型内联 import、init.ts as any、lint curly 清理 | 低 | 低 | ✅ |
-| N | 第二驱力维度（饥饿/饱腹） | 中 | 中 | 🟡 |
+| N | 第二驱力维度（饥饿/饱腹） | 中 | 中 | ✅ |
 
 ## 任务详情
 
@@ -113,11 +113,11 @@
 - **方案**：types.ts 内联 import 改显式 `import type`；init.ts `as any` 改 `?? FloorType.WOOD` 兜底；`pnpm lint --fix`
 - **理由**：内联 import() 当初是为了绕开循环依赖，但 `import type` 在编译期擦除、不产生运行时依赖，天然免疫循环依赖，是正规做法且可读性更好。`as any` 关闭了类型检查并掩盖"配置可能缺 floorType"这一真实状态，`?? FloorType.WOOD` 既兜底又保持类型安全。curly 属风格统一，`--fix` 机械修复零风险
 
-### N. 第二驱力维度（饥饿/饱腹）🟡 待评估
+### N. 第二驱力维度（饥饿/饱腹）
 
-- **前提**：eating/drinking 当前未真实化（idle 决策中被映射为 moving），饥饿值缺少消耗/补充挂载点
-- **时机**：任务 B（POI）落地、进食真实化之后再评估是否引入；如需进一步差异化互动频率，可同时考虑"社交满足度"
-- **原则**：每加一个驱力维度，权重计算与调参复杂度乘法增长，能不加就不加
+- **方案**：新模块 `cat-hunger.ts`（纯函数，仿 cat-energy 模式）。`Cat.hunger` 0-100（语义与体力相反：0 饱足、100 极饿），初始 20+随机 20；累积 idle/watching/grooming +0.04 / sleeping,hiding +0.02 / moving,exploring,socializing +0.06 / climbing +0.08 / chasing,fleeing +0.1 / playFighting +0.12（每帧，dt 缩放）；补充 eating -1.5 / drinking -0.2。接入：updateCatState 每帧更新；idle 决策 eating 权重 × `getEatUrgency`（不饿 0.1、阈值 60 处 1、极饿升至 3）；eat POI 权重同样乘紧迫因子（越饿越走向食盆）；InfoPanel 加饥饿行（饱足/微饿/饥饿/极饿）
+- **理由**：双驱力分工——体力决定"玩不玩得起"，饥饿决定"什么时候必须吃"。紧迫因子用连续函数而非阈值开关，避免饥饿猫在食盆前突然"开关式"行为跳变；不新增打断逻辑，仅靠权重倾斜让进食自然浮现，调参面最小
+- **验收**：饥饿随时间累积、进食后回落；饥饿猫显著更频繁前往食盆；测试全过 + 饥饿纯函数/集成测试
 
 ---
 

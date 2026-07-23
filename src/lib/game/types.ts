@@ -191,6 +191,8 @@ export interface Cat {
   lastPerceivedDistance: number | null; // 上一帧感知到的对方距离（用于接近判定）
   // 体力系统（驱力）
   energy: number; // 体力值（0-100）
+  // 饥饿系统（第二驱力）
+  hunger: number; // 饥饿值（0-100，越高越饿）
   // POI 系统
   nextAction?: CatActionState; // 移动到达后要切换的状态
   // 个性系统

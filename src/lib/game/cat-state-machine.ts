@@ -23,6 +23,7 @@ import {
   isExhausted,
   updateEnergy,
 } from './cat-energy';
+import { getEatUrgency, updateHunger } from './cat-hunger';
 import {
   derivePOIs,
   getArrivalAction,
@@ -74,6 +75,7 @@ export function updateCatState(cat: Cat, ctx: StateContext, dt: number = 1): Cat
 
   updateMood(cat, dt);
   cat.energy = updateEnergy(cat.energy, cat.action, dt);
+  cat.hunger = updateHunger(cat.hunger, cat.action, dt);
 
   // nextAction 安全网：非移动状态不持有残留目的地（如反应层打断 moving 后）
   if (cat.action !== 'moving') {
@@ -241,7 +243,7 @@ function updateIdleState(cat: Cat, ctx: StateContext, dt: number): CatIntent[] {
       sleeping: 12 * calculateBehaviorWeight(cat.personality, 'sleeping'),
       hiding: 5 * calculateBehaviorWeight(cat.personality, 'hiding'),
       chasing: 2 * calculateBehaviorWeight(cat.personality, 'chasing') * energyFactor,
-      eating: 5 * calculateBehaviorWeight(cat.personality, 'eating'),
+      eating: 5 * calculateBehaviorWeight(cat.personality, 'eating') * getEatUrgency(cat.hunger),
       drinking: 3,
       exploring: 8 * calculateBehaviorWeight(cat.personality, 'exploring'),
       socializing: calculateBehaviorWeight(cat.personality, 'socializing') * energyFactor,

@@ -14,6 +14,11 @@
     moodThreshold === 'content' ? '满足' :
     moodThreshold === 'excited' ? '兴奋' : '极度兴奋'
   );
+  const hungerName = $derived(
+    cat.hunger >= 80 ? '极饿' :
+    cat.hunger >= 60 ? '饥饿' :
+    cat.hunger >= 40 ? '微饿' : '饱足'
+  );
 </script>
 
 <div class="cat-info-panel">
@@ -29,6 +34,7 @@
     <p><strong>动作:</strong> {cat.action}</p>
     <p><strong>情绪:</strong> {moodName} ({Math.round(cat.mood.value)})</p>
     <p><strong>体力:</strong> {Math.round(cat.energy)}</p>
+    <p><strong>饥饿:</strong> {hungerName} ({Math.round(cat.hunger)})</p>
     <p><strong>碰撞半径:</strong> {cat.collisionRadius}px</p>
     <p><strong>交互半径:</strong> {cat.interactionRadius}px</p>
   </div>
