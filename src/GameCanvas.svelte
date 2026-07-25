@@ -3,6 +3,7 @@
   import type {Cat} from './lib/game';
   import {GameRenderer} from './lib/game';
   import {debugMode, gameState} from './lib/stores/gameStore';
+  import {getDPR} from './lib/utils';
 
   interface Props {
     oncatclick: (cat: Cat) => void;
@@ -51,7 +52,7 @@
     if (!canvas) {
       return;
     }
-    const dpr = devicePixelRatio;
+    const dpr = getDPR();
     canvas.width = innerWidth * dpr;
     canvas.height = innerHeight * dpr;
     const ctx = canvas.getContext('2d');

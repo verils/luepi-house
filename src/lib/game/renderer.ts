@@ -6,6 +6,7 @@ import { TextureManager } from './texture-manager';
 import { getTimeOverlayColor } from './time-system';
 import { getWeatherBackgroundColor } from './weather-system';
 import type { TileMap } from './tile-map';
+import { getDPR } from '../utils';
 
 /**
  * 游戏渲染器
@@ -205,7 +206,7 @@ export class GameRenderer {
   private renderDebugLayers(): void {
     const canvasRect = this.camera.screenToWorld(0, 0);
     // canvas.width 是物理像素（= CSS 宽 × dpr），需换算回逻辑像素再除 zoom
-    const dpr = devicePixelRatio;
+    const dpr = getDPR();
     const canvasWidth = this.canvas.width / dpr / this.camera.zoom;
     const canvasHeight = this.canvas.height / dpr / this.camera.zoom;
 
