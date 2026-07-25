@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { onMount, onDestroy } from 'svelte';
-  import { GameRenderer } from './lib/game';
-  import type { Cat } from './lib/game';
-  import { gameState, debugMode } from './lib/stores/gameStore';
+  import {onMount, onDestroy} from 'svelte';
+  import {GameRenderer} from './lib/game';
+  import type {Cat} from './lib/game';
+  import {gameState, debugMode} from './lib/stores/gameStore';
 
   interface Props {
     oncatclick: (cat: Cat) => void;
@@ -11,8 +11,10 @@
   }
 
   let {
-    oncatclick = () => {},
-    oncatdeselect = () => {},
+    oncatclick = () => {
+    },
+    oncatdeselect = () => {
+    },
     renderer = $bindable<GameRenderer | null>(null),
   }: Props = $props();
 
@@ -33,7 +35,9 @@
   $effect(() => {
     if (renderer) {
       renderer.setDebugMode(isDebug);
-      if (currentState) {renderer.render(currentState);}
+      if (currentState) {
+        renderer.render(currentState);
+      }
     }
   });
 
@@ -43,7 +47,9 @@
   });
 
   function resizeCanvas() {
-    if (!canvas) {return;}
+    if (!canvas) {
+      return;
+    }
     const dpr = devicePixelRatio;
     const width = innerWidth;
     const height = innerHeight;
@@ -52,7 +58,9 @@
     canvas.style.width = width + 'px';
     canvas.style.height = height + 'px';
     const ctx = canvas.getContext('2d');
-    if (ctx) {ctx.setTransform(dpr, 0, 0, dpr, 0, 0);}
+    if (ctx) {
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
   }
 
   onMount(() => {
@@ -68,7 +76,7 @@
     canvas.addEventListener('mousemove', handleMouseMove);
     canvas.addEventListener('mouseup', handleMouseUp);
     canvas.addEventListener('mouseleave', handleMouseLeave);
-    canvas.addEventListener('wheel', handleWheel, { passive: false });
+    canvas.addEventListener('wheel', handleWheel, {passive: false});
     document.addEventListener('keydown', handleKeyDown);
 
     canvas.style.cursor = 'grab';
@@ -88,7 +96,9 @@
 
   function handleResize() {
     resizeCanvas();
-    if (renderer && currentState) {renderer.render(currentState);}
+    if (renderer && currentState) {
+      renderer.render(currentState);
+    }
   }
 
   function handleMouseDown(e: MouseEvent) {
@@ -129,7 +139,9 @@
     camera.pan(deltaX, deltaY);
     lastMouseX = e.clientX;
     lastMouseY = e.clientY;
-    if (currentState) {renderer.render(currentState);}
+    if (currentState) {
+      renderer.render(currentState);
+    }
   }
 
   function handleMouseUp() {
@@ -145,27 +157,48 @@
   }
 
   function handleWheel(e: WheelEvent) {
-    if (!renderer) {return;}
+    if (!renderer) {
+      return;
+    }
     e.preventDefault();
     const camera = renderer.getCamera();
     const scaleFactor = e.deltaY > 0 ? 0.9 : 1.1;
     camera.zoomAt(scaleFactor, e.offsetX, e.offsetY);
-    if (currentState) {renderer.render(currentState);}
+    if (currentState) {
+      renderer.render(currentState);
+    }
   }
 
   function handleKeyDown(e: KeyboardEvent) {
-    if (!renderer || !currentState) {return;}
+    if (!renderer || !currentState) {
+      return;
+    }
     const camera = renderer.getCamera();
     const panSpeed = 20;
 
     switch (e.key) {
-      case 'ArrowUp':    camera.pan(0, panSpeed); break;
-      case 'ArrowDown':  camera.pan(0, -panSpeed); break;
-      case 'ArrowLeft':  camera.pan(panSpeed, 0); break;
-      case 'ArrowRight': camera.pan(-panSpeed, 0); break;
-      case '+': case '=': camera.zoomAt(1.1); break;
-      case '-': case '_': camera.zoomAt(0.9); break;
-      default: return;
+      case 'ArrowUp':
+        camera.pan(0, panSpeed);
+        break;
+      case 'ArrowDown':
+        camera.pan(0, -panSpeed);
+        break;
+      case 'ArrowLeft':
+        camera.pan(panSpeed, 0);
+        break;
+      case 'ArrowRight':
+        camera.pan(-panSpeed, 0);
+        break;
+      case '+':
+      case '=':
+        camera.zoomAt(1.1);
+        break;
+      case '-':
+      case '_':
+        camera.zoomAt(0.9);
+        break;
+      default:
+        return;
     }
 
     e.preventDefault();
@@ -173,13 +206,17 @@
   }
 
   function checkCatClick(mouseX: number, mouseY: number, camera?: ReturnType<GameRenderer['getCamera']>): Cat | null {
-    if (!currentState || !camera) {return null;}
+    if (!currentState || !camera) {
+      return null;
+    }
     const worldPos = camera.screenToWorld(mouseX, mouseY);
     for (const cat of currentState.cats) {
       const dx = worldPos.x - (cat.x + cat.visualWidth / 2);
       const dy = worldPos.y - (cat.y + cat.visualHeight / 2);
       const distance = Math.sqrt(dx * dx + dy * dy);
-      if (distance <= cat.interactionRadius) {return cat;}
+      if (distance <= cat.interactionRadius) {
+        return cat;
+      }
     }
     return null;
   }

@@ -1,5 +1,3 @@
-import type { GameState } from './types';
-
 /**
  * 摄影机类，用于控制画布的平移和缩放
  */
