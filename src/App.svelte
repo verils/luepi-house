@@ -39,16 +39,22 @@
   let lastMouseY = 0;
 
   let currentState: GameState | null = null;
-  const unsubGameState = gameState.subscribe((s) => (currentState = s));
+  const unsubGameState = gameState.subscribe((s) => {
+    currentState = s;
+  });
 
   let isDebug = $state(false);
-  const unsubDebug = debugMode.subscribe((d) => (isDebug = d));
+  const unsubDebug = debugMode.subscribe((d) => {
+    isDebug = d;
+  });
 
   // debugMode 运行时切换：同步到渲染器并重绘
   $effect(() => {
     if (renderer) {
       renderer.setDebugMode(isDebug);
-      if (currentState) renderer.render(currentState);
+      if (currentState) {
+        renderer.render(currentState);
+      }
     }
   });
 
@@ -62,7 +68,9 @@
     canvas.width = size.width;
     canvas.height = size.height;
     const ctx = canvas.getContext('2d');
-    if (ctx) ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+    if (ctx) {
+      ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+    }
   }
 
   onMount(() => {
@@ -82,7 +90,9 @@
 
     const state = getGameState();
     centerCameraOnHouse();
-    if (state) renderer.render(state);
+    if (state) {
+      renderer.render(state);
+    }
     animationFrameId = requestAnimationFrame(gameLoop);
   });
 
@@ -107,7 +117,9 @@
   }
 
   function centerCameraOnHouse() {
-    if (!renderer) return;
+    if (!renderer) {
+      return;
+    }
     const camera = renderer.getCamera();
     camera.x = innerWidth / 2 - MAP_WIDTH / 2 * camera.zoom;
     camera.y = innerHeight / 2 - MAP_HEIGHT / 2 * camera.zoom;
@@ -138,7 +150,9 @@
       logSystemEvent(state.eventLog, 'weather_change', `天气变为${getWeatherName(state.weather.current)}`, {
         weather: state.weather.current,
       }, {
-        hour: state.time.hour, minute: state.time.minute, day: state.time.day,
+        hour: state.time.hour,
+        minute: state.time.minute,
+        day: state.time.day,
       });
     }
 
@@ -150,7 +164,11 @@
       house: state.house,
       allCats: state.cats,
       eventLog: state.eventLog,
-      gameTime: { hour: state.time.hour, minute: state.time.minute, day: state.time.day },
+      gameTime: {
+        hour: state.time.hour,
+        minute: state.time.minute,
+        day: state.time.day,
+      },
     };
 
     const allIntents: CatIntent[] = [];
@@ -165,7 +183,9 @@
       lastUiSync = now;
       gameState.set(state);
       const sel = get(selectedCat);
-      if (sel) selectedCat.set(sel);
+      if (sel) {
+        selectedCat.set(sel);
+      }
     }
 
     animationFrameId = requestAnimationFrame(gameLoop);
@@ -174,34 +194,50 @@
   // ── 视图控制 ──
 
   function resetCamera() {
-    if (!renderer) return;
+    if (!renderer) {
+      return;
+    }
     const state = getGameState();
-    if (!state) return;
+    if (!state) {
+      return;
+    }
     const camera = renderer.getCamera();
-    camera.x = 0; camera.y = 0; camera.zoom = 1;
+    camera.x = 0;
+    camera.y = 0;
+    camera.zoom = 1;
     centerCameraOnHouse();
     renderer.render(state);
   }
 
   function zoomIn() {
-    if (!renderer) return;
+    if (!renderer) {
+      return;
+    }
     const state = getGameState();
-    if (!state) return;
+    if (!state) {
+      return;
+    }
     renderer.getCamera().zoomAt(1.2);
     renderer.render(state);
   }
 
   function zoomOut() {
-    if (!renderer) return;
+    if (!renderer) {
+      return;
+    }
     const state = getGameState();
-    if (!state) return;
+    if (!state) {
+      return;
+    }
     renderer.getCamera().zoomAt(0.8);
     renderer.render(state);
   }
 
   function handleSpeedChange() {
     const state = getGameState();
-    if (!state) return;
+    if (!state) {
+      return;
+    }
     state.time.speed = cycleTimeSpeed(state.time.speed);
   }
 
@@ -209,7 +245,9 @@
 
   function handleResize() {
     resizeCanvas();
-    if (renderer && currentState) renderer.render(currentState);
+    if (renderer && currentState) {
+      renderer.render(currentState);
+    }
   }
 
   function handleMouseDown(e: MouseEvent) {
@@ -232,10 +270,16 @@
   }
 
   function handleMouseMove(e: MouseEvent) {
-    if (!renderer) return;
+    if (!renderer) {
+      return;
+    }
     if (!isDragging) {
-      if (!pendingDrag) return;
-      if (Math.hypot(e.clientX - downX, e.clientY - downY) <= 4) return;
+      if (!pendingDrag) {
+        return;
+      }
+      if (Math.hypot(e.clientX - downX, e.clientY - downY) <= 4) {
+        return;
+      }
       isDragging = true;
       pendingDrag = false;
       lastMouseX = e.clientX;
@@ -247,7 +291,9 @@
     camera.pan(e.clientX - lastMouseX, e.clientY - lastMouseY);
     lastMouseX = e.clientX;
     lastMouseY = e.clientY;
-    if (currentState) renderer.render(currentState);
+    if (currentState) {
+      renderer.render(currentState);
+    }
   }
 
   function handleMouseUp() {
@@ -263,24 +309,45 @@
   }
 
   function handleWheel(e: WheelEvent) {
-    if (!renderer) return;
+    if (!renderer) {
+      return;
+    }
     e.preventDefault();
     renderer.getCamera().zoomAt(e.deltaY > 0 ? 0.9 : 1.1, e.offsetX, e.offsetY);
-    if (currentState) renderer.render(currentState);
+    if (currentState) {
+      renderer.render(currentState);
+    }
   }
 
   function handleKeyDown(e: KeyboardEvent) {
-    if (!renderer || !currentState) return;
+    if (!renderer || !currentState) {
+      return;
+    }
     const camera = renderer.getCamera();
     const panSpeed = 20;
     switch (e.key) {
-      case 'ArrowUp': camera.pan(0, panSpeed); break;
-      case 'ArrowDown': camera.pan(0, -panSpeed); break;
-      case 'ArrowLeft': camera.pan(panSpeed, 0); break;
-      case 'ArrowRight': camera.pan(-panSpeed, 0); break;
-      case '+': case '=': camera.zoomAt(1.1); break;
-      case '-': case '_': camera.zoomAt(0.9); break;
-      default: return;
+      case 'ArrowUp':
+        camera.pan(0, panSpeed);
+        break;
+      case 'ArrowDown':
+        camera.pan(0, -panSpeed);
+        break;
+      case 'ArrowLeft':
+        camera.pan(panSpeed, 0);
+        break;
+      case 'ArrowRight':
+        camera.pan(-panSpeed, 0);
+        break;
+      case '+':
+      case '=':
+        camera.zoomAt(1.1);
+        break;
+      case '-':
+      case '_':
+        camera.zoomAt(0.9);
+        break;
+      default:
+        return;
     }
     e.preventDefault();
     renderer.render(currentState);
