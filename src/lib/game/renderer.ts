@@ -26,14 +26,17 @@ export class GameRenderer {
 
   constructor(canvas: HTMLCanvasElement, debugMode: boolean = false) {
     this.canvas = canvas;
+
     const ctx = canvas.getContext('2d');
     if (!ctx) {
       throw new Error('无法获取 Canvas 上下文');
     }
     this.ctx = ctx;
+
     this.camera = new Camera();
-    this.debugMode = debugMode;
     this.textureManager = new TextureManager(ctx);
+
+    this.debugMode = debugMode;
 
     // 初始化猫咪渲染器映射
     this.defaultCatRenderer = new DefaultCatRenderer(this.ctx);
@@ -390,6 +393,15 @@ export class GameRenderer {
 
       this.ctx.restore();
     }
+  }
+
+  /**
+   * 释放渲染器持有的所有资源
+   */
+  destroy(): void {
+    this.textureManager.dispose();
+    this.darkenPatternCache.clear();
+    this.staticCanvas = null;
   }
 
   /**

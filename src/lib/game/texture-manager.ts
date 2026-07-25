@@ -37,6 +37,14 @@ export class TextureManager {
   }
 
   /**
+   * 释放所有纹理资源
+   */
+  dispose(): void {
+    this.textures.clear();
+    this.patterns.clear();
+  }
+
+  /**
    * 生成所有占位纹理
    */
   private generateAllTextures(): void {
