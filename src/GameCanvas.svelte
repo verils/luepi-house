@@ -1,8 +1,8 @@
 <script lang="ts">
-  import {onMount, onDestroy} from 'svelte';
-  import {GameRenderer} from './lib/game';
+  import {onDestroy, onMount} from 'svelte';
   import type {Cat} from './lib/game';
-  import {gameState, debugMode} from './lib/stores/gameStore';
+  import {GameRenderer} from './lib/game';
+  import {debugMode, gameState} from './lib/stores/gameStore';
 
   interface Props {
     oncatclick: (cat: Cat) => void;
@@ -28,6 +28,7 @@
 
   let currentState: any = null;
   const unsubGameState = gameState.subscribe((s) => (currentState = s));
+
   let isDebug = $state(false);
   const unsubDebug = debugMode.subscribe((d) => (isDebug = d));
 
@@ -51,12 +52,8 @@
       return;
     }
     const dpr = devicePixelRatio;
-    const width = innerWidth;
-    const height = innerHeight;
-    canvas.width = width * dpr;
-    canvas.height = height * dpr;
-    canvas.style.width = width + 'px';
-    canvas.style.height = height + 'px';
+    canvas.width = innerWidth * dpr;
+    canvas.height = innerHeight * dpr;
     const ctx = canvas.getContext('2d');
     if (ctx) {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -68,6 +65,10 @@
       return;
     }
 
+    if (isDebug) {
+      // eslint-disable-next-line no-debugger
+      debugger;
+    }
     resizeCanvas();
 
     renderer = new GameRenderer(canvas, isDebug);
