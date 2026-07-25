@@ -68,10 +68,6 @@
       return;
     }
 
-    if (isDebug) {
-      // eslint-disable-next-line no-debugger
-      debugger;
-    }
     resizeCanvas();
 
     renderer = new GameRenderer(canvas, isDebug);
