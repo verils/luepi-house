@@ -1,12 +1,11 @@
-import type { GameState, Tile, Cat, Shelter, CatBed, Furniture } from './types';
-import { TILE_SIZE, MAP_WIDTH, MAP_HEIGHT, TileType, FloorType } from './types';
-import { Camera } from './camera';
-import { LuelueCatRenderer, PipiCatRenderer, DefaultCatRenderer, CatRenderer } from './cat-renderer';
-import { TextureManager } from './texture-manager';
-import { getTimeOverlayColor } from './time-system';
-import { getWeatherBackgroundColor } from './weather-system';
-import type { TileMap } from './tile-map';
-import { getDPR } from '../utils';
+import type {Cat, CatBed, Furniture, GameState, Shelter} from './types';
+import {FloorType, MAP_HEIGHT, MAP_WIDTH, TILE_SIZE, TileType} from './types';
+import {Camera} from './camera';
+import {CatRenderer, DefaultCatRenderer, LuelueCatRenderer, PipiCatRenderer} from './cat-renderer';
+import {TextureManager} from './texture-manager';
+import {getTimeOverlayColor} from './time-system';
+import {getWeatherBackgroundColor} from './weather-system';
+import type {TileMap} from './tile-map';
 
 /**
  * 游戏渲染器
@@ -206,7 +205,7 @@ export class GameRenderer {
   private renderDebugLayers(): void {
     const canvasRect = this.camera.screenToWorld(0, 0);
     // canvas.width 是物理像素（= CSS 宽 × dpr），需换算回逻辑像素再除 zoom
-    const dpr = getDPR();
+    const dpr = devicePixelRatio;
     const canvasWidth = this.canvas.width / dpr / this.camera.zoom;
     const canvasHeight = this.canvas.height / dpr / this.camera.zoom;
 
