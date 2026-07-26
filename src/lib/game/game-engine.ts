@@ -1,8 +1,8 @@
 import type {Writable} from 'svelte/store';
 import {get} from 'svelte/store';
-import type {CatIntent, GameState, StateContext} from './types';
+import type {CatIntent, GameState} from './types';
 import type {GameRenderer} from './renderer';
-import {updateCatState} from './cat-state-machine';
+import {type StateContext, updateCatState} from './cat-state-machine';
 import {resolveIntents} from './cat-intent-resolver';
 import {updateTime} from './time-system';
 import {updateWeather, getWeatherName} from './weather-system';
