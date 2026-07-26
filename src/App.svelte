@@ -10,17 +10,18 @@
     debugMode,
     deselectCat,
     gameState,
-    initializeGame,
+    initializeGameState,
     selectCat,
     selectedCat,
     showCatInfo,
   } from './lib/stores/gameStore';
   import InfoPanel from './InfoPanel.svelte';
 
+  // 画布
   let canvas: HTMLCanvasElement;
 
+  // 游戏对象定义
   let camera: Camera;
-
   let renderer: GameRenderer | null = null;
   let engine: GameEngine | null = null;
   let input: InputHandler | null = null;
@@ -30,26 +31,8 @@
     debugMode.set(p === 'true' || p === 'yes' || p === '1');
   });
 
-  function resizeCanvas() {
-    const size = getPhysicalWindowScreenSize();
-    canvas.width = size.width;
-    canvas.height = size.height;
-
-    const ctx = canvas.getContext('2d');
-    if (ctx) {
-      ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
-    }
-  }
-
-  function renderCurrentState() {
-    const state = get(gameState);
-    if (state && renderer) {
-      renderer.render(state);
-    }
-  }
-
   onMount(() => {
-    initializeGame();
+    initializeGameState();
 
     resizeCanvas();
 
@@ -97,6 +80,24 @@
     input?.detach();
     renderer?.destroy();
   });
+
+  function resizeCanvas() {
+    const size = getPhysicalWindowScreenSize();
+    canvas.width = size.width;
+    canvas.height = size.height;
+
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+    }
+  }
+
+  function renderCurrentState() {
+    const state = get(gameState);
+    if (state && renderer) {
+      renderer.render(state);
+    }
+  }
 
   function handleSpeedChange() {
     const state = get(gameState);

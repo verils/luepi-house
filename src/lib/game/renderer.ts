@@ -47,13 +47,6 @@ export class GameRenderer {
   }
 
   /**
-   * 标记静态层需要重绘
-   */
-  markStaticDirty(): void {
-    this.staticDirty = true;
-  }
-
-  /**
    * 运行时切换调试层显隐
    */
   setDebugMode(value: boolean): void {
