@@ -6,7 +6,7 @@ type ScreenSize = {
 /**
  * 获取物理屏幕尺寸
  */
-export function getPhysicalScreenSize(): ScreenSize {
+export function getPhysicalWindowScreenSize(): ScreenSize {
   return {
     width: window.innerWidth * devicePixelRatio,
     height: window.innerHeight * devicePixelRatio

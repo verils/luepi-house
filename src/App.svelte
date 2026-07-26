@@ -1,23 +1,29 @@
 <script lang="ts">
-  import { onMount, onDestroy } from 'svelte';
-  import { get } from 'svelte/store';
-  import { updateCatState, resolveIntents } from './lib/game';
-  import type { StateContext, GameState, CatIntent } from './lib/game';
-  import { GameRenderer } from './lib/game';
-  import { MAP_WIDTH, MAP_HEIGHT } from './lib/game';
-  import { updateTime, cycleTimeSpeed } from './lib/game';
-  import { updateWeather, getWeatherName } from './lib/game';
-  import { logSystemEvent } from './lib/game';
-  import { getPhysicalScreenSize } from './lib/game/screen';
+  import {onDestroy, onMount} from 'svelte';
+  import {get} from 'svelte/store';
+  import type {CatIntent, GameState, StateContext} from './lib/game';
   import {
-    gameState,
-    selectedCat,
-    showCatInfo,
-    debugMode,
+    cycleTimeSpeed,
+    GameRenderer,
+    getWeatherName,
+    logSystemEvent,
+    MAP_HEIGHT,
+    MAP_WIDTH,
+    resolveIntents,
+    updateCatState,
+    updateTime,
+    updateWeather
+  } from './lib/game';
+  import {getPhysicalWindowScreenSize} from './lib/game/screen';
+  import {
     currentFPS,
+    debugMode,
+    deselectCat,
+    gameState,
     initializeGame,
     selectCat,
-    deselectCat,
+    selectedCat,
+    showCatInfo,
   } from './lib/stores/gameStore';
   import InfoPanel from './InfoPanel.svelte';
 
@@ -64,9 +70,10 @@
   });
 
   function resizeCanvas() {
-    const size = getPhysicalScreenSize();
+    const size = getPhysicalWindowScreenSize();
     canvas.width = size.width;
     canvas.height = size.height;
+
     const ctx = canvas.getContext('2d');
     if (ctx) {
       ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
@@ -76,16 +83,17 @@
   onMount(() => {
     initializeGame();
 
+    canvas.style.cursor = 'grab';
     resizeCanvas();
+
     renderer = new GameRenderer(canvas, isDebug);
 
     canvas.addEventListener('mousedown', handleMouseDown);
     canvas.addEventListener('mousemove', handleMouseMove);
     canvas.addEventListener('mouseup', handleMouseUp);
     canvas.addEventListener('mouseleave', handleMouseLeave);
-    canvas.addEventListener('wheel', handleWheel, { passive: false });
+    canvas.addEventListener('wheel', handleWheel, {passive: false});
     document.addEventListener('keydown', handleKeyDown);
-    canvas.style.cursor = 'grab';
     window.addEventListener('resize', handleResize);
 
     const state = getGameState();
@@ -359,7 +367,7 @@
 
   <div class="ui-overlay">
     {#if $showCatInfo && $selectedCat}
-      <InfoPanel cat={$selectedCat} onclose={() => deselectCat()} />
+      <InfoPanel cat={$selectedCat} onclose={() => deselectCat()}/>
     {/if}
 
     <div class="time-panel">
@@ -523,7 +531,15 @@
   }
 
   @media (max-width: 768px) {
-    .control-btn { padding: 8px 16px; min-width: 80px; font-size: 12px; }
-    .instructions { font-size: 11px; padding: 6px 12px; }
+    .control-btn {
+      padding: 8px 16px;
+      min-width: 80px;
+      font-size: 12px;
+    }
+
+    .instructions {
+      font-size: 11px;
+      padding: 6px 12px;
+    }
   }
 </style>
