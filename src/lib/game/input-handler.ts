@@ -75,15 +75,6 @@ export class InputHandler {
     window.removeEventListener('resize', this.boundWindowResize);
   }
 
-  resetCamera(): void {
-    const camera = this.getCamera();
-    camera.x = 0;
-    camera.y = 0;
-    camera.zoom = 1;
-    this.centerCameraOnHouse();
-    this.onRender();
-  }
-
   zoomIn(): void {
     this.getCamera().zoomAt(1.2);
     this.onRender();
@@ -92,12 +83,6 @@ export class InputHandler {
   zoomOut(): void {
     this.getCamera().zoomAt(0.8);
     this.onRender();
-  }
-
-  centerCameraOnHouse(): void {
-    const camera = this.getCamera();
-    camera.x = innerWidth / 2 - MAP_WIDTH / 2 * camera.zoom;
-    camera.y = innerHeight / 2 - MAP_HEIGHT / 2 * camera.zoom;
   }
 
   private handleMouseDown(e: MouseEvent): void {

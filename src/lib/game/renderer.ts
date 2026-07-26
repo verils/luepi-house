@@ -24,7 +24,7 @@ export class GameRenderer {
   private staticCanvas: HTMLCanvasElement | null = null;
   private staticDirty = true;
 
-  constructor(canvas: HTMLCanvasElement, debugMode: boolean = false) {
+  constructor(canvas: HTMLCanvasElement, camera: Camera, debugMode: boolean = false) {
     this.canvas = canvas;
 
     const ctx = canvas.getContext('2d');
@@ -33,7 +33,7 @@ export class GameRenderer {
     }
     this.ctx = ctx;
 
-    this.camera = new Camera();
+    this.camera = camera;
     this.textureManager = new TextureManager(ctx);
 
     this.debugMode = debugMode;
@@ -83,7 +83,7 @@ export class GameRenderer {
 
     // 应用时间色调叠加
     this.applyTimeOverlay(state.time);
-    
+
     // 应用天气效果（窗外背景）
     this.applyWeatherEffect(state.weather);
 
@@ -180,8 +180,8 @@ export class GameRenderer {
    * 应用时间色调叠加
    */
   private applyTimeOverlay(time: GameState['time']): void {
-    const { color, opacity } = getTimeOverlayColor(time.phase);
-    
+    const {color, opacity} = getTimeOverlayColor(time.phase);
+
     if (opacity > 0) {
       this.ctx.save();
       this.ctx.fillStyle = color;
@@ -405,20 +405,16 @@ export class GameRenderer {
   }
 
   /**
-   * 获取摄影机实例
-   */
-  getCamera(): Camera {
-    return this.camera;
-  }
-
-  /**
    * 地板 fallback 颜色
    */
   private getFloorFallbackColor(floorType: FloorType): string {
     switch (floorType) {
-      case FloorType.WOOD: return '#D4A76A';
-      case FloorType.CARPET: return '#E8D5B7';
-      case FloorType.TILE: return '#F0EDE8';
+      case FloorType.WOOD:
+        return '#D4A76A';
+      case FloorType.CARPET:
+        return '#E8D5B7';
+      case FloorType.TILE:
+        return '#F0EDE8';
     }
   }
 
@@ -429,7 +425,9 @@ export class GameRenderer {
   private darkenPattern(pattern: CanvasPattern, factor: number, patternKey: string): CanvasPattern {
     const key = `${patternKey}_${factor}`;
     const cached = this.darkenPatternCache.get(key);
-    if (cached) {return cached;}
+    if (cached) {
+      return cached;
+    }
 
     const tempCanvas = document.createElement('canvas');
     tempCanvas.width = TILE_SIZE;

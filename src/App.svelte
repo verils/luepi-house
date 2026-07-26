@@ -1,7 +1,7 @@
 <script lang="ts">
   import {onDestroy, onMount} from 'svelte';
   import {get} from 'svelte/store';
-  import {GameRenderer, cycleTimeSpeed, MAP_HEIGHT, MAP_WIDTH} from './lib/game';
+  import {GameRenderer, cycleTimeSpeed, Camera, MAP_WIDTH, MAP_HEIGHT} from './lib/game';
   import {GameEngine} from './lib/game/game-engine';
   import {InputHandler} from './lib/game/input-handler';
   import {getPhysicalWindowScreenSize} from './lib/game/screen';
@@ -18,6 +18,9 @@
   import InfoPanel from './InfoPanel.svelte';
 
   let canvas: HTMLCanvasElement;
+
+  let camera: Camera;
+
   let renderer: GameRenderer | null = null;
   let engine: GameEngine | null = null;
   let input: InputHandler | null = null;
@@ -47,13 +50,15 @@
 
   onMount(() => {
     initializeGame();
+
     resizeCanvas();
 
-    renderer = new GameRenderer(canvas, get(debugMode));
+    camera = new Camera();
+    renderer = new GameRenderer(canvas, camera, get(debugMode));
 
     input = new InputHandler({
       canvas,
-      getCamera: () => renderer!.getCamera(),
+      getCamera: () => camera,
       getState: () => get(gameState),
       onSelectCat: selectCat,
       onDeselectCat: deselectCat,
@@ -64,7 +69,7 @@
       },
     });
     input.attach();
-    input.centerCameraOnHouse();
+    centerCameraOnHouse();
 
     engine = new GameEngine({
       getGameState: () => get(gameState),
@@ -100,6 +105,17 @@
     }
     state.time.speed = cycleTimeSpeed(state.time.speed);
   }
+
+  function centerCameraOnHouse() {
+    camera.x = innerWidth / 2 - MAP_WIDTH / 2 * camera.zoom;
+    camera.y = innerHeight / 2 - MAP_HEIGHT / 2 * camera.zoom;
+  }
+
+  function resetCamera() {
+    camera.zoom = 1;
+    centerCameraOnHouse();
+    renderCurrentState();
+  }
 </script>
 
 <div class="game-container">
@@ -124,7 +140,7 @@
     </div>
 
     <div class="controls">
-      <button class="control-btn" onclick={() => input?.resetCamera()}>重置视图</button>
+      <button class="control-btn" onclick={resetCamera}>重置视图</button>
       <button class="control-btn" onclick={() => input?.zoomIn()}>放大</button>
       <button class="control-btn" onclick={() => input?.zoomOut()}>缩小</button>
     </div>
