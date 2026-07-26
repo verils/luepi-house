@@ -8,11 +8,11 @@
     "build": "vite build",
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.app.json && tsc -p tsconfig.node.json",
+    "lint": "eslint src/",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage",
-    "lint": "eslint src/"
+    "test:coverage": "vitest run --coverage"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
