@@ -1,12 +1,12 @@
-import type { Cat, CatActionState, CatBed, Furniture, Shelter } from './types';
+import type { Cat, CatActionState, CatBed, Furniture, Shelter, Toy } from './types';
 import { getMoodThreshold } from './mood-system';
-import { CHASE_MIN_ENERGY } from './cat-energy';
+import { CHASE_MIN_ENERGY, getEnergyBehaviorFactor } from './cat-energy';
 import { getEatUrgency } from './cat-satiety';
 
-// POI（兴趣点）系统：从现有家具/猫窝/庇护所派生目的地，不新增配置。
+// POI（兴趣点）系统：从现有家具/猫窝/庇护所/玩具派生目的地，不新增配置。
 // 全部纯函数；状态机负责把选中的 POI 转成移动目标与 nextAction。
 
-export type POIType = 'rest' | 'observe' | 'eat' | 'hide';
+export type POIType = 'rest' | 'observe' | 'eat' | 'hide' | 'play';
 
 export interface POI {
   id: string;
@@ -33,7 +33,8 @@ const FURNITURE_POI_TYPE: Record<string, POIType> = {
 export function derivePOIs(
   furnitures: readonly Furniture[],
   catBeds: readonly CatBed[],
-  shelters: readonly Shelter[]
+  shelters: readonly Shelter[],
+  toys: readonly Toy[] = []
 ): POI[] {
   const pois: POI[] = [];
   for (const f of furnitures) {
@@ -47,6 +48,9 @@ export function derivePOIs(
   }
   for (const s of shelters) {
     pois.push({ id: s.id, name: s.name, type: 'hide', x: s.x, y: s.y, width: s.width, height: s.height, solid: false });
+  }
+  for (const t of toys) {
+    pois.push({ id: t.id, name: t.name, type: 'play', x: t.x, y: t.y, width: t.width, height: t.height, solid: false });
   }
   return pois;
 }
@@ -70,6 +74,11 @@ export function getPOIWeight(cat: Cat, poi: POI): number {
       let w = 1 + (100 - p.bravery) / 100;
       if (depressed) { w *= 2; }
       return w;
+    }
+    case 'play': {
+      // 调皮驱动 + 体力因子（保底 0.2，力竭的猫偶尔也拨弄两下）
+      const energyFactor = 0.2 + 0.8 * getEnergyBehaviorFactor(cat.energy);
+      return (1 + p.playfulness / 50) * energyFactor;
     }
   }
 }
@@ -105,12 +114,13 @@ export function getPOIApproachPoint(
   }
 }
 
-// 到达 POI 后的行为：rest 按体力决定瞌睡或长休息，observe 注视或停留，eat 进食，hide 躲藏
+// 到达 POI 后的行为：rest 按体力决定瞌睡或长休息，observe 注视或停留，eat 进食，hide 躲藏，play 玩耍
 export function getArrivalAction(cat: Cat, poiType: POIType, rng: () => number = Math.random): CatActionState {
   switch (poiType) {
     case 'rest': return cat.energy < 50 ? 'sleeping' : 'idle';
     case 'observe': return rng() < 0.5 ? 'watching' : 'idle';
     case 'eat': return 'eating';
     case 'hide': return 'hiding';
+    case 'play': return 'playing';
   }
 }

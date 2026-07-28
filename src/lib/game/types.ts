@@ -94,6 +94,16 @@ export interface CatBed {
   height: number;
 }
 
+// 玩具接口（猫可以玩耍的小物件，无碰撞）
+export interface Toy {
+  id: string;
+  name: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 // 碰撞基元（可碰撞的矩形区域）
 export interface SolidObject {
   x: number;
@@ -118,6 +128,7 @@ export interface MapConfig {
   shelters: Shelter[]; // 庇护所列表
   catBeds: CatBed[]; // 猫窝列表
   furnitures: Furniture[]; // 家具列表
+  toys: Toy[]; // 玩具列表
   defaultFloor: FloorType; // 默认地板类型
 }
 
@@ -136,7 +147,9 @@ export type CatActionState =
   | 'exploring'
   | 'socializing'
   | 'watching'
-  | 'climbing';
+  | 'climbing'
+  | 'playing'
+  | 'following';
 
 // 猫咪情绪状态定义见 mood-system.ts（CatMoodState）
 
@@ -195,6 +208,8 @@ export interface Cat {
   satiety: number; // 饱腹度（0-100，越高越饱）
   // POI 系统
   nextAction?: CatActionState; // 移动到达后要切换的状态
+  // 探索路径记忆
+  visitedPoints: { x: number; y: number }[]; // 最近到达过的位置（上限见 VISIT_MEMORY_MAX）
   // 个性系统
   personality: CatPersonality; // 猫咪个性
 }
@@ -215,6 +230,7 @@ export interface GameState {
   shelters: Shelter[];
   catBeds: CatBed[];
   furnitures: Furniture[]; // 家具列表
+  toys: Toy[]; // 玩具列表
   solidObjects: SolidObject[]; // 所有可碰撞对象（墙壁碰撞 + 家具）
   time: TimeState; // 时间状态
   weather: WeatherState; // 天气状态

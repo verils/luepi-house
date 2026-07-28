@@ -8,7 +8,7 @@ import {
   type POI,
 } from './cat-poi';
 import { updateCatState, type StateContext } from './cat-state-machine';
-import type { Cat, CatBed, Furniture, Shelter } from './types';
+import type { Cat, CatBed, Furniture, Shelter, Toy } from './types';
 import { createMoodState } from './mood-system';
 
 function createTestCat(overrides: Partial<Cat> = {}): Cat {
@@ -39,6 +39,7 @@ function createTestCat(overrides: Partial<Cat> = {}): Cat {
     lastPerceivedDistance: null,
     energy: 100,
     satiety: 50,
+    visitedPoints: [],
     personality: {
       curiosity: 50,
       energy: 50,
@@ -60,6 +61,7 @@ function createCtx(cats: Cat[], overrides: Partial<StateContext> = {}): StateCon
     shelters: [],
     catBeds: [],
     furnitures: [],
+    toys: [],
     solidObjects: [],
     house: { x: 24, y: 24, width: 960, height: 640 },
     allCats: cats,
@@ -269,5 +271,44 @@ describe('POI 集成（updateCatState）', () => {
     }
     // 确认睡觉路径被真实走到（加权随机下 200 次几乎必然命中）
     expect(sleepingWalks).toBeGreaterThan(0);
+  });
+});
+
+describe('play POI（玩具）', () => {
+  const toys: Toy[] = [
+    { id: 'yarnBall', name: '毛线球', x: 100, y: 700, width: 32, height: 32 },
+  ];
+  const playPOI: POI = { id: 'yarnBall', name: '毛线球', type: 'play', x: 0, y: 0, width: 32, height: 32, solid: false };
+
+  it('玩具派生为 play POI 且非实体', () => {
+    const pois = derivePOIs([], [], [], toys);
+    expect(pois).toHaveLength(1);
+    expect(pois[0].type).toBe('play');
+    expect(pois[0].solid).toBe(false);
+  });
+
+  it('不传玩具时不产生 play POI（向后兼容）', () => {
+    const pois = derivePOIs(furnitures, catBeds, shelters);
+    expect(pois.find((p) => p.type === 'play')).toBeUndefined();
+  });
+
+  it('调皮猫 play 权重更高', () => {
+    const calm = getPOIWeight(createTestCat({
+      personality: { ...createTestCat().personality, playfulness: 10 },
+    }), playPOI);
+    const naughty = getPOIWeight(createTestCat({
+      personality: { ...createTestCat().personality, playfulness: 90 },
+    }), playPOI);
+    expect(naughty).toBeGreaterThan(calm);
+  });
+
+  it('低体力猫 play 权重更低', () => {
+    const energetic = getPOIWeight(createTestCat({ energy: 100 }), playPOI);
+    const tired = getPOIWeight(createTestCat({ energy: 20 }), playPOI);
+    expect(tired).toBeLessThan(energetic);
+  });
+
+  it('到达 play POI 后进入 playing', () => {
+    expect(getArrivalAction(createTestCat(), 'play')).toBe('playing');
   });
 });

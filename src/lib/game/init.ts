@@ -15,6 +15,7 @@ import {
   createDefaultFurnitures,
   createDefaultShelters,
   createDefaultCatBeds,
+  createDefaultToys,
   ROOMS,
 } from '../config/map';
 import { CAT_CONFIGS, createCatFromConfig } from '../config/cats';
@@ -44,6 +45,7 @@ export function initGameState(): GameState {
   const furnitures = createDefaultFurnitures();
   const shelters = createDefaultShelters();
   const catBeds = createDefaultCatBeds();
+  const toys = createDefaultToys();
 
   const map: MapConfig = {
     width: MAP_WIDTH,
@@ -53,6 +55,7 @@ export function initGameState(): GameState {
     shelters,
     catBeds,
     furnitures,
+    toys,
     defaultFloor: tileMap.getTile(
       Math.floor(MAP_COLS / 2),
       Math.floor(MAP_ROWS / 2)
@@ -79,6 +82,7 @@ export function initGameState(): GameState {
     shelters,
     catBeds,
     furnitures,
+    toys,
     solidObjects,
     time,
     weather,

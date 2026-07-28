@@ -1,4 +1,4 @@
-// 行为系统 - 14种行为配置和决策逻辑
+// 行为系统 - 16种行为配置和决策逻辑
 
 import type { CatActionState } from './types';
 
@@ -26,6 +26,8 @@ export const BEHAVIOR_CONFIG: Record<CatActionState, BehaviorConfig> = {
   socializing:  { minDuration: 60,  maxDuration: 180, cooldown: 120, requiresTarget: true, targetTypes: ['cat'] },
   watching:     { minDuration: 60,  maxDuration: 180, cooldown: 60,  requiresTarget: true },
   climbing:     { minDuration: 90,  maxDuration: 240, cooldown: 120, requiresTarget: true, targetTypes: ['catTree'] },
+  playing:      { minDuration: 90,  maxDuration: 180, cooldown: 60,  requiresTarget: true, targetTypes: ['toy'] },
+  following:    { minDuration: 120, maxDuration: 360, cooldown: 90,  requiresTarget: true, targetTypes: ['cat'] },
 };
 
 // 时间阶段对行为的修正系数

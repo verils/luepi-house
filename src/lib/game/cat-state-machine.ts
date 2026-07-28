@@ -1,4 +1,4 @@
-import type { Cat, CatActionState, CatBed, CatIntent, Shelter, SolidObject, Furniture, House } from './types';
+import type { Cat, CatActionState, CatBed, CatIntent, Shelter, SolidObject, Furniture, House, Toy } from './types';
 import { MAP_WIDTH, MAP_HEIGHT } from './types';
 import { calculateBehaviorWeight, getChaseReverseChance, getIdleDurationModifier } from './personality';
 import {
@@ -36,6 +36,26 @@ import {
 const ARRIVAL_THRESHOLD = 3;
 const CAT_SEPARATION_DISTANCE = 16;
 
+// 探索路径记忆：记住最近到达过的位置，随机探索时避开
+export const VISIT_MEMORY_MAX = 6;
+export const REVISIT_RADIUS = 96; // 视为"最近去过"的距离（3 格）
+
+export function rememberVisit(cat: Cat, x: number, y: number): void {
+  cat.visitedPoints.unshift({ x, y });
+  if (cat.visitedPoints.length > VISIT_MEMORY_MAX) {
+    cat.visitedPoints.length = VISIT_MEMORY_MAX;
+  }
+}
+
+export function isNearRecentVisit(cat: Cat, x: number, y: number, radius: number = REVISIT_RADIUS): boolean {
+  const r2 = radius * radius;
+  return cat.visitedPoints.some((p) => {
+    const dx = p.x - x;
+    const dy = p.y - y;
+    return dx * dx + dy * dy < r2;
+  });
+}
+
 const ACTION_SWITCH_MIN = 20;
 const ACTION_SWITCH_MAX = 60;
 const GROOMING_CHANCE = 0.15;
@@ -61,6 +81,7 @@ export interface StateContext {
   shelters: Shelter[];
   catBeds: CatBed[];
   furnitures: Furniture[];
+  toys: Toy[];
   solidObjects: readonly SolidObject[];
   house: House;
   allCats: readonly Cat[];
@@ -120,6 +141,12 @@ export function updateCatState(cat: Cat, ctx: StateContext, dt: number = 1): Cat
       break;
     case 'eating':
       updateEatingState(cat, ctx);
+      break;
+    case 'playing':
+      updatePlayingState(cat, ctx);
+      break;
+    case 'following':
+      updateFollowingState(cat, ctx, dt);
       break;
     case 'watching':
       updateWatchingState(cat, ctx);
@@ -245,6 +272,8 @@ function updateIdleState(cat: Cat, ctx: StateContext, dt: number): CatIntent[] {
       chasing: 2 * calculateBehaviorWeight(cat.personality, 'chasing') * energyFactor,
       eating: 5 * calculateBehaviorWeight(cat.personality, 'eating') * getEatUrgency(cat.satiety),
       drinking: 3,
+      playing: 6 * calculateBehaviorWeight(cat.personality, 'playFighting') * energyFactor,
+      following: ctx.allCats.length > 1 ? 6 * calculateBehaviorWeight(cat.personality, 'socializing') : 0,
       exploring: 8 * calculateBehaviorWeight(cat.personality, 'exploring'),
       socializing: calculateBehaviorWeight(cat.personality, 'socializing') * energyFactor,
       watching: 5 * calculateBehaviorWeight(cat.personality, 'watching'),
@@ -291,7 +320,7 @@ function updateIdleState(cat: Cat, ctx: StateContext, dt: number): CatIntent[] {
         break;
       case 'eating': {
         // 走向食盆，到达后进食
-        const eatPOIs = derivePOIs(ctx.furnitures, ctx.catBeds, ctx.shelters).filter((p) => p.type === 'eat');
+        const eatPOIs = derivePOIs(ctx.furnitures, ctx.catBeds, ctx.shelters, ctx.toys).filter((p) => p.type === 'eat');
         const poi = selectPOI(cat, eatPOIs);
         const point = poi ? pickApproachPoint(poi, cat, ctx) : null;
         if (point) {
@@ -308,6 +337,29 @@ function updateIdleState(cat: Cat, ctx: StateContext, dt: number): CatIntent[] {
       case 'drinking':
         // 没有水碗配置，保持随机移动
         enterMovingState(cat, ctx);
+        break;
+      case 'playing': {
+        // 走向玩具，到达后玩耍
+        const playPOIs = derivePOIs(ctx.furnitures, ctx.catBeds, ctx.shelters, ctx.toys).filter((p) => p.type === 'play');
+        const poi = selectPOI(cat, playPOIs);
+        const point = poi ? pickApproachPoint(poi, cat, ctx) : null;
+        if (point) {
+          cat.targetX = point.x;
+          cat.targetY = point.y;
+          cat.nextAction = 'playing';
+          cat.action = 'moving';
+          cat.actionTimer = 0;
+        } else {
+          enterMovingState(cat, ctx);
+        }
+        break;
+      }
+      case 'following':
+        if (ctx.allCats.length > 1) {
+          enterFollowingState(cat, ctx);
+        } else {
+          enterMovingState(cat, ctx);
+        }
         break;
       case 'exploring':
         enterMovingState(cat, ctx);
@@ -343,6 +395,8 @@ function updateMovingState(cat: Cat, ctx: StateContext, dt: number): void {
   if (distance <= ARRIVAL_THRESHOLD) {
     cat.x = cat.targetX;
     cat.y = cat.targetY;
+    // 探索路径记忆：记录到达点
+    rememberVisit(cat, cat.x, cat.y);
     // 消费 nextAction（POI 目的地携带的到达后行为）
     const next = cat.nextAction;
     cat.nextAction = undefined;
@@ -352,6 +406,10 @@ function updateMovingState(cat: Cat, ctx: StateContext, dt: number): void {
       case 'hiding':
       case 'eating':
         cat.action = next;
+        return;
+      case 'playing':
+        cat.action = 'playing';
+        applyMoodEvent(cat.mood, 'play', cat.personality, Date.now());
         return;
       case 'watching':
         enterWatchingState(cat, ctx);
@@ -498,6 +556,72 @@ function updateEatingState(cat: Cat, ctx: StateContext): void {
   }
 }
 
+function updatePlayingState(cat: Cat, ctx: StateContext): void {
+  if (cat.actionTimer > 90 + Math.random() * 90) {
+    cat.action = 'idle';
+    cat.idleTimer = 30 + Math.floor(Math.random() * 60);
+    cat.actionTimer = 0;
+  }
+}
+
+// 社交跟随：以正常速度跟着对方走，靠近后转为注视陪伴。
+// 只修改自身状态，不需要对方配合（区别于追逐，不走意图系统）。
+function updateFollowingState(cat: Cat, ctx: StateContext, dt: number): void {
+  if (!cat.chaseTargetId) {
+    cat.action = 'idle';
+    cat.idleTimer = 60 + Math.floor(Math.random() * 120);
+    return;
+  }
+
+  const target = ctx.allCats.find((c) => c.id === cat.chaseTargetId);
+  // 目标消失或睡着/躲起来：不跟了
+  if (!target || target.action === 'sleeping' || target.action === 'hiding') {
+    cat.action = 'idle';
+    cat.idleTimer = 60 + Math.floor(Math.random() * 120);
+    cat.actionTimer = 0;
+    cat.chaseTargetId = null;
+    return;
+  }
+
+  // 跟久了失去兴趣
+  if (cat.actionTimer > 300 + Math.random() * 300) {
+    cat.action = 'idle';
+    cat.idleTimer = 60 + Math.floor(Math.random() * 120);
+    cat.actionTimer = 0;
+    cat.chaseTargetId = null;
+    return;
+  }
+
+  const dx = target.x - cat.x;
+  const dy = target.y - cat.y;
+  const distance = Math.sqrt(dx * dx + dy * dy);
+
+  // 靠近了：转为注视陪伴
+  if (distance < CAT_SEPARATION_DISTANCE * 2) {
+    applyMoodEvent(cat.mood, 'socialize', cat.personality, Date.now());
+    cat.chaseTargetId = null;
+    enterWatchingState(cat, ctx);
+    return;
+  }
+
+  moveToward(cat, target.x, target.y, getEffectiveSpeed(cat), ctx, dt);
+}
+
+function enterFollowingState(cat: Cat, ctx: StateContext): void {
+  // 随机挑一只醒着且没躲起来的猫跟着
+  const candidates = ctx.allCats.filter(
+    (c) => c.id !== cat.id && c.action !== 'sleeping' && c.action !== 'hiding'
+  );
+  if (candidates.length === 0) {
+    enterMovingState(cat, ctx);
+    return;
+  }
+  const target = candidates[Math.floor(Math.random() * candidates.length)];
+  cat.chaseTargetId = target.id;
+  cat.action = 'following';
+  cat.actionTimer = 0;
+}
+
 function updateWatchingState(cat: Cat, ctx: StateContext): void {
   // 持续将注视点对准对方（供后续朝向/渲染扩展使用）
   const other = ctx.allCats.find((c) => c.id !== cat.id);
@@ -635,7 +759,7 @@ function enterWatchingState(cat: Cat, ctx: StateContext): void {
 function enterMovingState(cat: Cat, ctx?: StateContext): void {
   // POI 目的地偏好：有上下文时 70% 走向兴趣点，30% 纯随机探索
   if (ctx) {
-    const pois = derivePOIs(ctx.furnitures, ctx.catBeds, ctx.shelters);
+    const pois = derivePOIs(ctx.furnitures, ctx.catBeds, ctx.shelters, ctx.toys);
     if (pois.length > 0 && Math.random() < POI_CHANCE) {
       const poi = selectPOI(cat, pois);
       const point = poi ? pickApproachPoint(poi, cat, ctx) : null;
@@ -651,6 +775,7 @@ function enterMovingState(cat: Cat, ctx?: StateContext): void {
   }
 
   // 纯随机选点（保留探索感，也是 POI 选点失败时的回退）
+  // 避开实体内部和最近去过的位置（探索路径记忆）
   const margin = cat.visualWidth;
   const house = ctx?.house;
   const houseX = house?.x ?? 0;
@@ -663,7 +788,7 @@ function enterMovingState(cat: Cat, ctx?: StateContext): void {
     tx = houseX + margin + Math.random() * (houseW - margin * 2);
     ty = houseY + margin + Math.random() * (houseH - margin * 2);
     attempts++;
-  } while (ctx && isInsideObject(tx, ty, ctx) && attempts < 5);
+  } while (ctx && (isInsideObject(tx, ty, ctx) || isNearRecentVisit(cat, tx, ty)) && attempts < 8);
 
   cat.targetX = tx;
   cat.targetY = ty;
@@ -713,7 +838,7 @@ function isInsideObject(x: number, y: number, ctx: StateContext): boolean {
 
 function enterSleepingState(cat: Cat, ctx: StateContext): void {
   // 走向休息点（猫窝/沙发/软垫按权重竞争），到达后再睡，不再瞬移
-  const restPOIs = derivePOIs(ctx.furnitures, ctx.catBeds, ctx.shelters).filter((p) => p.type === 'rest');
+  const restPOIs = derivePOIs(ctx.furnitures, ctx.catBeds, ctx.shelters, ctx.toys).filter((p) => p.type === 'rest');
   const poi = selectPOI(cat, restPOIs);
   const point = poi ? pickApproachPoint(poi, cat, ctx) : null;
   if (point) {
@@ -734,7 +859,7 @@ function enterSleepingState(cat: Cat, ctx: StateContext): void {
 
 function enterHidingState(cat: Cat, ctx: StateContext): void {
   // 走向最近的躲藏点，到达后再躲，不再瞬移
-  const hidePOIs = derivePOIs(ctx.furnitures, ctx.catBeds, ctx.shelters).filter((p) => p.type === 'hide');
+  const hidePOIs = derivePOIs(ctx.furnitures, ctx.catBeds, ctx.shelters, ctx.toys).filter((p) => p.type === 'hide');
   let nearest: POI | null = null;
   let minDist = Infinity;
   for (const p of hidePOIs) {

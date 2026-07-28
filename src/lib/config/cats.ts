@@ -92,6 +92,7 @@ export function createCatFromConfig(config: CatConfig, x: number, y: number): Ca
     lastPerceivedDistance: null,
     energy: createEnergy(),
     satiety: createSatiety(),
+    visitedPoints: [],
     personality: createPersonality(config.personality),
   };
 }

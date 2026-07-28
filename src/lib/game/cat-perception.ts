@@ -14,6 +14,8 @@ const INTERRUPTABLE_ACTIONS: ReadonlySet<CatActionState> = new Set([
   'grooming',
   'watching',
   'exploring',
+  'playing',
+  'following',
 ]);
 
 // 感知结果（纯数据）

@@ -95,6 +95,7 @@ export class GameEngine {
       shelters: state.shelters,
       catBeds: state.catBeds,
       furnitures: state.furnitures,
+      toys: state.toys,
       solidObjects: state.solidObjects,
       house: state.house,
       allCats: state.cats,

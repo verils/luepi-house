@@ -40,6 +40,7 @@ function createTestCat(overrides: Partial<Cat> = {}): Cat {
     lastPerceivedDistance: null,
     energy: 100,
     satiety: 50,
+    visitedPoints: [],
     personality: {
       curiosity: 50,
       energy: 50,
@@ -61,6 +62,7 @@ function createCtx(cats: Cat[]): StateContext {
     shelters: [],
     catBeds: [],
     furnitures: [],
+    toys: [],
     solidObjects: [],
     house: { x: 24, y: 24, width: 960, height: 640 },
     allCats: cats,

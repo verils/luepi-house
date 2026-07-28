@@ -15,6 +15,7 @@ const MOOD_EVENTS: Record<string, number> = {
   // 正面事件
   chase_start: +15,
   play_fight: +10,
+  play: +8,
   pet: +20,
   eat: +5,
   socialize: +8,
@@ -94,6 +95,7 @@ function getPersonalityMoodFactor(personality: CatPersonality, eventType: string
   switch (eventType) {
     case 'chase_start':
     case 'play_fight':
+    case 'play':
       return 0.5 + personality.playfulness / 100;
     
     case 'pet':

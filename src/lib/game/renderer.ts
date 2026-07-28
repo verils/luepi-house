@@ -1,4 +1,4 @@
-import type {Cat, CatBed, Furniture, GameState, Shelter} from './types';
+import type {Cat, CatBed, Furniture, GameState, Shelter, Toy} from './types';
 import {FloorType, MAP_HEIGHT, MAP_WIDTH, TILE_SIZE, TileType} from './types';
 import {Camera} from './camera';
 import {CatRenderer, DefaultCatRenderer, LuelueCatRenderer, PipiCatRenderer} from './cat-renderer';
@@ -102,6 +102,7 @@ export class GameRenderer {
     this.renderSheltersToCtx(offCtx, state.shelters);
     this.renderCatBedsToCtx(offCtx, state.catBeds);
     this.renderFurnituresToCtx(offCtx, state.furnitures);
+    this.renderToysToCtx(offCtx, state.toys);
   }
 
   /**
@@ -290,6 +291,31 @@ export class GameRenderer {
       ctx.font = '9px sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText(f.name, f.x + f.width / 2, f.y + f.height / 2 + 3);
+    }
+  }
+
+  /**
+   * 渲染玩具（小圆点 + 名称）
+   */
+  private renderToysToCtx(ctx: CanvasRenderingContext2D, toys: Toy[]): void {
+    for (const toy of toys) {
+      const cx = toy.x + toy.width / 2;
+      const cy = toy.y + toy.height / 2;
+      const r = Math.min(toy.width, toy.height) / 3;
+
+      ctx.fillStyle = 'rgba(233, 30, 99, 0.7)';
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = 'rgba(233, 30, 99, 0.9)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      ctx.fillStyle = 'rgba(233, 30, 99, 0.9)';
+      ctx.font = '9px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(toy.name, cx, toy.y + toy.height + 10);
     }
   }
 

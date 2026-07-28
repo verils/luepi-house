@@ -31,6 +31,7 @@ function createTestCat(overrides: Partial<Cat> = {}): Cat {
     lastPerceivedDistance: null,
     energy: 100,
     satiety: 50,
+    visitedPoints: [],
     personality: {
       curiosity: 50,
       energy: 50,

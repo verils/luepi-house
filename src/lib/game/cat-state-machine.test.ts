@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { updateCatState, type StateContext } from './cat-state-machine';
+import {
+  updateCatState,
+  rememberVisit,
+  isNearRecentVisit,
+  VISIT_MEMORY_MAX,
+  type StateContext,
+} from './cat-state-machine';
 import type { Cat } from './types';
 import { createMoodState } from './mood-system';
 
@@ -31,6 +37,7 @@ function createTestCat(overrides: Partial<Cat> = {}): Cat {
     lastPerceivedDistance: null,
     energy: 100,
     satiety: 50,
+    visitedPoints: [],
     personality: {
       curiosity: 50,
       energy: 50,
@@ -52,6 +59,7 @@ function createCtx(cats: Cat[]): StateContext {
     shelters: [],
     catBeds: [],
     furnitures: [],
+    toys: [],
     solidObjects: [],
     house: { x: 24, y: 24, width: 960, height: 640 },
     allCats: cats,
@@ -233,5 +241,103 @@ describe('碰撞解析统一', () => {
     // 猫移动后中心 (117.5,116) 与 rect (130-162, 90-122) 的最近点 (130,116) 距离 12.5 < 16
     // 推离后：x = 101.5 - (16-12.5) = 98
     expect(cat.x).toBeCloseTo(98, 0);
+  });
+});
+
+describe('following 社交跟随', () => {
+  it('跟随中的猫向对方移动', () => {
+    const target = createTestCat({ id: 'b', x: 400, y: 100 });
+    const cat = createTestCat({ id: 'a', action: 'following', chaseTargetId: 'b', x: 100, y: 100 });
+    const ctx = createCtx([cat, target]);
+
+    updateCatState(cat, ctx);
+
+    expect(cat.action).toBe('following');
+    expect(cat.x).toBeGreaterThan(100);
+    // 跟随只修改自身
+    expect(target.x).toBe(400);
+    expect(target.action).toBe('idle');
+  });
+
+  it('靠近后转为注视并清空跟随目标', () => {
+    const target = createTestCat({ id: 'b', x: 125, y: 100 });
+    const cat = createTestCat({ id: 'a', action: 'following', chaseTargetId: 'b', x: 100, y: 100 });
+    const ctx = createCtx([cat, target]);
+
+    updateCatState(cat, ctx);
+
+    expect(cat.action).toBe('watching');
+    expect(cat.chaseTargetId).toBeNull();
+  });
+
+  it('目标睡着后放弃跟随', () => {
+    const target = createTestCat({ id: 'b', x: 400, y: 100, action: 'sleeping' });
+    const cat = createTestCat({ id: 'a', action: 'following', chaseTargetId: 'b', x: 100, y: 100 });
+    const ctx = createCtx([cat, target]);
+
+    updateCatState(cat, ctx);
+
+    expect(cat.action).toBe('idle');
+    expect(cat.chaseTargetId).toBeNull();
+  });
+
+  it('跟随超时后回到 idle', () => {
+    const target = createTestCat({ id: 'b', x: 400, y: 100 });
+    const cat = createTestCat({ id: 'a', action: 'following', chaseTargetId: 'b', actionTimer: 700, x: 100, y: 100 });
+    const ctx = createCtx([cat, target]);
+
+    updateCatState(cat, ctx);
+
+    expect(cat.action).toBe('idle');
+    expect(cat.chaseTargetId).toBeNull();
+  });
+});
+
+describe('playing 玩耍', () => {
+  it('玩耍超时后回到 idle', () => {
+    const cat = createTestCat({ action: 'playing', actionTimer: 200 });
+    const ctx = createCtx([cat]);
+
+    updateCatState(cat, ctx);
+
+    expect(cat.action).toBe('idle');
+  });
+
+  it('玩耍消耗体力', () => {
+    const cat = createTestCat({ action: 'playing', energy: 50, actionTimer: 0 });
+    const ctx = createCtx([cat]);
+
+    updateCatState(cat, ctx);
+
+    expect(cat.energy).toBeLessThan(50);
+  });
+});
+
+describe('探索路径记忆', () => {
+  it('rememberVisit 记录并封顶 VISIT_MEMORY_MAX', () => {
+    const cat = createTestCat();
+    for (let i = 0; i < VISIT_MEMORY_MAX + 3; i++) {
+      rememberVisit(cat, i * 10, i * 10);
+    }
+    expect(cat.visitedPoints).toHaveLength(VISIT_MEMORY_MAX);
+    // 最新的在最前
+    expect(cat.visitedPoints[0].x).toBe((VISIT_MEMORY_MAX + 2) * 10);
+  });
+
+  it('isNearRecentVisit 判定半径内的访问点', () => {
+    const cat = createTestCat({ visitedPoints: [{ x: 200, y: 200 }] });
+    expect(isNearRecentVisit(cat, 210, 200)).toBe(true);
+    expect(isNearRecentVisit(cat, 500, 500)).toBe(false);
+    expect(isNearRecentVisit(cat, 210, 200, 5)).toBe(false); // 自定义半径
+  });
+
+  it('moving 到达目标后记录访问点', () => {
+    const cat = createTestCat({ action: 'moving', targetX: 100, targetY: 100, x: 100, y: 100 });
+    const ctx = createCtx([cat]);
+
+    updateCatState(cat, ctx);
+
+    expect(cat.visitedPoints).toHaveLength(1);
+    expect(cat.visitedPoints[0]).toEqual({ x: 100, y: 100 });
   });
 });

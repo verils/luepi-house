@@ -9,14 +9,16 @@ import {
 } from './behavior-system';
 
 describe('BEHAVIOR_CONFIG', () => {
-  it('应该包含所有 14 种行为', () => {
+  it('应该包含所有 16 种行为', () => {
     const behaviors = Object.keys(BEHAVIOR_CONFIG);
-    expect(behaviors).toHaveLength(14);
+    expect(behaviors).toHaveLength(16);
     expect(behaviors).toContain('idle');
     expect(behaviors).toContain('moving');
     expect(behaviors).toContain('sleeping');
     expect(behaviors).toContain('chasing');
     expect(behaviors).toContain('fleeing');
+    expect(behaviors).toContain('playing');
+    expect(behaviors).toContain('following');
   });
 
   it('每种行为应有合理的持续时间范围', () => {

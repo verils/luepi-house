@@ -1,5 +1,5 @@
 import { TILE_SIZE, MAP_COLS, MAP_ROWS, FloorType } from '../game/types';
-import type { House, Shelter, CatBed, Furniture, Room } from '../game/types';
+import type { House, Shelter, CatBed, Furniture, Room, Toy } from '../game/types';
 import { TileMap } from '../game/tile-map';
 import { TileType } from '../game/types';
 
@@ -125,5 +125,14 @@ export function createDefaultCatBeds(): CatBed[] {
   const T = TILE_SIZE;
   return [
     { id: 'bed1', name: '猫窝', x: 20 * T, y: 3 * T, width: 3 * T, height: 2 * T },
+  ];
+}
+
+// 默认玩具（无碰撞的小物件）
+export function createDefaultToys(): Toy[] {
+  const T = TILE_SIZE;
+  return [
+    { id: 'yarnBall', name: '毛线球', x: 10 * T, y: 20 * T, width: T, height: T },
+    { id: 'toyMouse', name: '玩具老鼠', x: 26 * T, y: 22 * T, width: T, height: T },
   ];
 }
