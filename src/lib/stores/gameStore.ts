@@ -1,6 +1,6 @@
-import { writable, derived } from 'svelte/store';
-import type { GameState, Cat } from '../game/types';
-import { initGameState } from '../game/init';
+import { writable } from 'svelte/store';
+import type { Cat, GameState } from '../game';
+import { initGameState } from '../game';
 
 export const gameState = writable<GameState | null>(null);
 export const selectedCat = writable<Cat | null>(null);
