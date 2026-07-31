@@ -1,10 +1,10 @@
 import type {Cat, GameState} from './types';
 import type {Camera} from './camera';
-import {MAP_HEIGHT, MAP_WIDTH} from './types';
+import {DragController} from './drag-controller';
 
 export interface InputHandlerOptions {
   canvas: HTMLCanvasElement;
-  getCamera: () => Camera;
+  camera: Camera;
   getState: () => GameState | null;
   onSelectCat: (cat: Cat) => void;
   onDeselectCat: () => void;
@@ -13,20 +13,14 @@ export interface InputHandlerOptions {
 }
 
 export class InputHandler {
-  private isDragging = false;
-  private pendingDrag = false;
-  private downX = 0;
-  private downY = 0;
-  private lastMouseX = 0;
-  private lastMouseY = 0;
-
   private readonly canvas: HTMLCanvasElement;
-  private readonly getCamera: () => Camera;
+  private readonly camera: Camera;
   private readonly getState: () => GameState | null;
   private readonly onSelectCat: (cat: Cat) => void;
   private readonly onDeselectCat: () => void;
   private readonly onRender: () => void;
   private readonly onResize: () => void;
+  private readonly drag: DragController;
 
   private boundMouseDown: (e: MouseEvent) => void;
   private boundMouseMove: (e: MouseEvent) => void;
@@ -38,12 +32,13 @@ export class InputHandler {
 
   constructor(options: InputHandlerOptions) {
     this.canvas = options.canvas;
-    this.getCamera = options.getCamera;
+    this.camera = options.camera;
     this.getState = options.getState;
     this.onSelectCat = options.onSelectCat;
     this.onDeselectCat = options.onDeselectCat;
     this.onRender = options.onRender;
     this.onResize = options.onResize;
+    this.drag = new DragController();
 
     this.boundMouseDown = (e) => this.handleMouseDown(e);
     this.boundMouseMove = (e) => this.handleMouseMove(e);
@@ -75,21 +70,10 @@ export class InputHandler {
     window.removeEventListener('resize', this.boundWindowResize);
   }
 
-  zoomIn(): void {
-    this.getCamera().zoomAt(1.2);
-    this.onRender();
-  }
-
-  zoomOut(): void {
-    this.getCamera().zoomAt(0.8);
-    this.onRender();
-  }
-
   private handleMouseDown(e: MouseEvent): void {
     const state = this.getState();
-    const camera = this.getCamera();
     if (state) {
-      const worldPos = camera.screenToWorld(e.offsetX, e.offsetY);
+      const worldPos = this.camera.screenToWorld(e.offsetX, e.offsetY);
       for (const cat of state.cats) {
         const dx = worldPos.x - (cat.x + cat.visualWidth / 2);
         const dy = worldPos.y - (cat.y + cat.visualHeight / 2);
@@ -100,74 +84,59 @@ export class InputHandler {
       }
     }
     this.onDeselectCat();
-    this.pendingDrag = true;
-    this.downX = e.clientX;
-    this.downY = e.clientY;
+    this.drag.start(e.clientX, e.clientY);
   }
 
   private handleMouseMove(e: MouseEvent): void {
-    if (!this.isDragging) {
-      if (!this.pendingDrag) {
-        return;
-      }
-      if (Math.hypot(e.clientX - this.downX, e.clientY - this.downY) <= 4) {
-        return;
-      }
-      this.isDragging = true;
-      this.pendingDrag = false;
-      this.lastMouseX = e.clientX;
-      this.lastMouseY = e.clientY;
+    const result = this.drag.move(e.clientX, e.clientY);
+    if (result.started) {
       this.canvas.style.cursor = 'grabbing';
       return;
     }
-    const camera = this.getCamera();
-    camera.pan(e.clientX - this.lastMouseX, e.clientY - this.lastMouseY);
-    this.lastMouseX = e.clientX;
-    this.lastMouseY = e.clientY;
-    this.onRender();
+    if (result.panned) {
+      this.camera.pan(result.dx, result.dy);
+      this.onRender();
+    }
   }
 
   private handleMouseUp(): void {
-    this.isDragging = false;
-    this.pendingDrag = false;
+    this.drag.end();
     this.canvas.style.cursor = 'grab';
   }
 
   private handleMouseLeave(): void {
-    this.isDragging = false;
-    this.pendingDrag = false;
+    this.drag.end();
     this.canvas.style.cursor = 'grab';
   }
 
   private handleWheel(e: WheelEvent): void {
     e.preventDefault();
-    this.getCamera().zoomAt(e.deltaY > 0 ? 0.9 : 1.1, e.offsetX, e.offsetY);
+    this.camera.zoomAt(e.deltaY > 0 ? 0.9 : 1.1, e.offsetX, e.offsetY);
     this.onRender();
   }
 
   private handleKeyDown(e: KeyboardEvent): void {
-    const camera = this.getCamera();
     const panSpeed = 20;
     switch (e.key) {
       case 'ArrowUp':
-        camera.pan(0, panSpeed);
+        this.camera.pan(0, panSpeed);
         break;
       case 'ArrowDown':
-        camera.pan(0, -panSpeed);
+        this.camera.pan(0, -panSpeed);
         break;
       case 'ArrowLeft':
-        camera.pan(panSpeed, 0);
+        this.camera.pan(panSpeed, 0);
         break;
       case 'ArrowRight':
-        camera.pan(-panSpeed, 0);
+        this.camera.pan(-panSpeed, 0);
         break;
       case '+':
       case '=':
-        camera.zoomAt(1.1);
+        this.camera.zoomAt(1.1);
         break;
       case '-':
       case '_':
-        camera.zoomAt(0.9);
+        this.camera.zoomAt(0.9);
         break;
       default:
         return;

@@ -41,7 +41,7 @@
 
     input = new InputHandler({
       canvas,
-      getCamera: () => camera,
+      camera,
       getState: () => get(gameState),
       onSelectCat: selectCat,
       onDeselectCat: deselectCat,
@@ -117,6 +117,16 @@
     centerCameraOnHouse();
     renderCurrentState();
   }
+
+  function zoomIn() {
+    camera.zoomAt(1.2);
+    renderCurrentState();
+  }
+
+  function zoomOut() {
+    camera.zoomAt(0.8);
+    renderCurrentState();
+  }
 </script>
 
 <div class="game-container">
@@ -142,8 +152,8 @@
 
     <div class="controls">
       <button class="control-btn" onclick={resetCamera}>重置视图</button>
-      <button class="control-btn" onclick={() => input?.zoomIn()}>放大</button>
-      <button class="control-btn" onclick={() => input?.zoomOut()}>缩小</button>
+      <button class="control-btn" onclick={zoomIn}>放大</button>
+      <button class="control-btn" onclick={zoomOut}>缩小</button>
     </div>
 
     <div class="instructions">
