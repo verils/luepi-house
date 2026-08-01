@@ -19,7 +19,6 @@ export class InputHandler {
   private readonly onSelectCat: (cat: Cat) => void;
   private readonly onDeselectCat: () => void;
   private readonly onRender: () => void;
-  private readonly onResize: () => void;
   private readonly drag: DragController;
 
   private boundMouseDown: (e: MouseEvent) => void;
@@ -37,7 +36,6 @@ export class InputHandler {
     this.onSelectCat = options.onSelectCat;
     this.onDeselectCat = options.onDeselectCat;
     this.onRender = options.onRender;
-    this.onResize = options.onResize;
     this.drag = new DragController();
 
     this.boundMouseDown = (e) => this.handleMouseDown(e);
@@ -46,7 +44,7 @@ export class InputHandler {
     this.boundMouseLeave = () => this.handleMouseLeave();
     this.boundWheel = (e) => this.handleWheel(e);
     this.boundKeyDown = (e) => this.handleKeyDown(e);
-    this.boundWindowResize = () => this.onResize();
+    this.boundWindowResize = () => options.onResize();
   }
 
   attach(): void {
