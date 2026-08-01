@@ -3,7 +3,7 @@
   import {get} from 'svelte/store';
   import {GameRenderer, cycleTimeSpeed, Camera, MAP_WIDTH, MAP_HEIGHT} from './lib/game';
   import {GameEngine} from './lib/game/game-engine';
-  import {InputHandler} from './lib/game/input-handler';
+  import {DragController} from './lib/game/drag-controller';
   import {getPhysicalWindowScreenSize} from './lib/game/screen';
   import {
     currentFPS,
@@ -24,7 +24,7 @@
   let camera: Camera;
   let renderer: GameRenderer | null = null;
   let engine: GameEngine | null = null;
-  let input: InputHandler | null = null;
+  let drag: DragController;
 
   $effect(() => {
     const p = new URLSearchParams(location.search).get('debug');
@@ -39,19 +39,16 @@
     camera = new Camera();
     renderer = new GameRenderer(canvas, camera, get(debugMode));
 
-    input = new InputHandler({
-      canvas,
-      camera,
-      getState: () => get(gameState),
-      onSelectCat: selectCat,
-      onDeselectCat: deselectCat,
-      onRender: renderCurrentState,
-      onResize: () => {
-        resizeCanvas();
-        renderCurrentState();
-      },
-    });
-    input.attach();
+    drag = new DragController();
+    canvas.style.cursor = 'grab';
+    canvas.addEventListener('mousedown', handleMouseDown);
+    canvas.addEventListener('mousemove', handleMouseMove);
+    canvas.addEventListener('mouseup', handleMouseUp);
+    canvas.addEventListener('mouseleave', handleMouseLeave);
+    canvas.addEventListener('wheel', handleWheel, {passive: false});
+    document.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('resize', handleResize);
+
     centerCameraOnHouse();
 
     engine = new GameEngine({
@@ -77,9 +74,96 @@
 
   onDestroy(() => {
     engine?.stop();
-    input?.detach();
+    canvas?.removeEventListener('mousedown', handleMouseDown);
+    canvas?.removeEventListener('mousemove', handleMouseMove);
+    canvas?.removeEventListener('mouseup', handleMouseUp);
+    canvas?.removeEventListener('mouseleave', handleMouseLeave);
+    canvas?.removeEventListener('wheel', handleWheel);
+    document.removeEventListener('keydown', handleKeyDown);
+    window.removeEventListener('resize', handleResize);
     renderer?.destroy();
   });
+
+  // --- 输入处理（鼠标 / 键盘 / 视图） ---
+  function handleMouseDown(e: MouseEvent): void {
+    const state = get(gameState);
+    if (state) {
+      const worldPos = camera.screenToWorld(e.offsetX, e.offsetY);
+      for (const cat of state.cats) {
+        const dx = worldPos.x - (cat.x + cat.visualWidth / 2);
+        const dy = worldPos.y - (cat.y + cat.visualHeight / 2);
+        if (Math.sqrt(dx * dx + dy * dy) <= cat.interactionRadius) {
+          selectCat(cat);
+          return;
+        }
+      }
+    }
+    deselectCat();
+    drag.start(e.clientX, e.clientY);
+  }
+
+  function handleMouseMove(e: MouseEvent): void {
+    const result = drag.move(e.clientX, e.clientY);
+    if (result.started) {
+      canvas.style.cursor = 'grabbing';
+      return;
+    }
+    if (result.panned) {
+      camera.pan(result.dx, result.dy);
+      renderCurrentState();
+    }
+  }
+
+  function handleMouseUp(): void {
+    drag.end();
+    canvas.style.cursor = 'grab';
+  }
+
+  function handleMouseLeave(): void {
+    drag.end();
+    canvas.style.cursor = 'grab';
+  }
+
+  function handleWheel(e: WheelEvent): void {
+    e.preventDefault();
+    camera.zoomAt(e.deltaY > 0 ? 0.9 : 1.1, e.offsetX, e.offsetY);
+    renderCurrentState();
+  }
+
+  function handleKeyDown(e: KeyboardEvent): void {
+    const panSpeed = 20;
+    switch (e.key) {
+      case 'ArrowUp':
+        camera.pan(0, panSpeed);
+        break;
+      case 'ArrowDown':
+        camera.pan(0, -panSpeed);
+        break;
+      case 'ArrowLeft':
+        camera.pan(panSpeed, 0);
+        break;
+      case 'ArrowRight':
+        camera.pan(-panSpeed, 0);
+        break;
+      case '+':
+      case '=':
+        camera.zoomAt(1.1);
+        break;
+      case '-':
+      case '_':
+        camera.zoomAt(0.9);
+        break;
+      default:
+        return;
+    }
+    e.preventDefault();
+    renderCurrentState();
+  }
+
+  function handleResize(): void {
+    resizeCanvas();
+    renderCurrentState();
+  }
 
   function resizeCanvas() {
     const size = getPhysicalWindowScreenSize();
