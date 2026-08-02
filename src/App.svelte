@@ -4,6 +4,7 @@
   import {Camera, cycleTimeSpeed, GameRenderer, MAP_HEIGHT, MAP_WIDTH} from './lib/game';
   import {GameEngine} from './lib/game/game-engine';
   import {DragController} from './lib/game/drag-controller';
+  import {FpsMeter} from './lib/game/fps-meter';
   import {getPhysicalWindowScreenSize} from './lib/game/screen';
   import {
     debugMode,
@@ -31,8 +32,7 @@
   let unsubDebug: (() => void) | null = null;
 
   let lastFrameTime = 0;
-  let fpsLastTime = 0;
-  let frames = 0;
+  let fpsMeter: FpsMeter;
   let fps = $state(0);
 
   $effect(() => {
@@ -80,7 +80,7 @@
     }
 
     // 启动帧循环
-    fpsLastTime = performance.now();
+    fpsMeter = new FpsMeter();
     animationFrameId = requestAnimationFrame(tick);
   });
 
@@ -111,14 +111,11 @@
       return;
     }
 
-    // FPS 计数：每秒上报一次
-    frames++;
+    // FPS 计数：每秒结算一次（窗口内未到结算点返回 null）
     const now = performance.now();
-    if (now - fpsLastTime >= 1000) {
-      fps = frames;
-
-      frames = 0;
-      fpsLastTime = now;
+    const measured = fpsMeter.tick(now);
+    if (measured !== null) {
+      fps = measured;
     }
 
     // 帧间隔 dt：归一化到 60fps，上限 3 防卡顿跳跃
