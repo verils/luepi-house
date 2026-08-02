@@ -27,11 +27,12 @@
 
   // 帧循环状态（rAF 驱动 / 帧计时 / FPS / UI 同步节流）
   let animationFrameId = 0;
-  let fpsLastTime = 0;
   let lastUiSync = 0;
-  let lastFrameTime = 0;
   let unsubDebug: (() => void) | null = null;
 
+  let lastFrameTime = 0;
+  let fpsLastTime = 0;
+  let frames = 0;
   let fps = $state(0);
 
   $effect(() => {
@@ -111,10 +112,12 @@
     }
 
     // FPS 计数：每秒上报一次
-    fps++;
+    frames++;
     const now = performance.now();
     if (now - fpsLastTime >= 1000) {
-      fps = 0;
+      fps = frames;
+
+      frames = 0;
       fpsLastTime = now;
     }
 
