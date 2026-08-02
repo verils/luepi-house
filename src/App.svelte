@@ -1,12 +1,11 @@
 <script lang="ts">
   import {onDestroy, onMount} from 'svelte';
   import {get} from 'svelte/store';
-  import {GameRenderer, cycleTimeSpeed, Camera, MAP_WIDTH, MAP_HEIGHT} from './lib/game';
+  import {Camera, cycleTimeSpeed, GameRenderer, MAP_HEIGHT, MAP_WIDTH} from './lib/game';
   import {GameEngine} from './lib/game/game-engine';
   import {DragController} from './lib/game/drag-controller';
   import {getPhysicalWindowScreenSize} from './lib/game/screen';
   import {
-    currentFPS,
     debugMode,
     deselectCat,
     gameState,
@@ -28,11 +27,12 @@
 
   // 帧循环状态（rAF 驱动 / 帧计时 / FPS / UI 同步节流）
   let animationFrameId = 0;
-  let fpsFrames = 0;
   let fpsLastTime = 0;
   let lastUiSync = 0;
   let lastFrameTime = 0;
   let unsubDebug: (() => void) | null = null;
+
+  let fps = $state(0);
 
   $effect(() => {
     const p = new URLSearchParams(location.search).get('debug');
@@ -111,11 +111,10 @@
     }
 
     // FPS 计数：每秒上报一次
-    fpsFrames++;
+    fps++;
     const now = performance.now();
     if (now - fpsLastTime >= 1000) {
-      currentFPS.set(fpsFrames);
-      fpsFrames = 0;
+      fps = 0;
       fpsLastTime = now;
     }
 
@@ -292,7 +291,7 @@
     </div>
 
     <div class="fps-counter">
-      FPS: {$currentFPS}
+      FPS: {fps}
     </div>
 
     <div class="controls">

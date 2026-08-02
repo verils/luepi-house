@@ -6,7 +6,6 @@ export const gameState = writable<GameState | null>(null);
 export const selectedCat = writable<Cat | null>(null);
 export const showCatInfo = writable(false);
 export const debugMode = writable(false);
-export const currentFPS = writable(0);
 
 export function initializeGameState(): GameState {
   const state = initGameState();
