@@ -1,79 +1,21 @@
-import type {Writable} from 'svelte/store';
-import {get} from 'svelte/store';
 import type {CatIntent, GameState} from './types';
-import type {GameRenderer} from './renderer';
 import {type StateContext, updateCatState} from './cat-state-machine';
 import {resolveIntents} from './cat-intent-resolver';
 import {updateTime} from './time-system';
 import {updateWeather, getWeatherName} from './weather-system';
 import {logSystemEvent} from './event-log';
 
-export interface GameEngineOptions {
-  getGameState: () => GameState | null;
-  renderer: GameRenderer;
-  debugMode: Writable<boolean>;
-  onFrameTick?: (state: GameState) => void;
-  onFPSUpdate?: (fps: number) => void;
-}
-
+/**
+ * 游戏模拟引擎：推进一帧的游戏状态（时间 / 天气 / 猫咪 AI / 意图解算）。
+ *
+ * 纯模拟单元——不持有 rAF 循环、不渲染、不触碰 store、不做帧计时。
+ * 循环驱动、帧计时、FPS 上报、UI 同步均由 App.svelte 负责。
+ */
 export class GameEngine {
-  private animationFrameId = 0;
-  private fpsFrames = 0;
-  private fpsLastTime = performance.now();
-  private lastUiSync = 0;
-  private lastFrameTime = 0;
-  private unsubDebug: (() => void) | null = null;
-
-  private readonly getGameState: () => GameState | null;
-  private readonly renderer: GameRenderer;
-  private readonly onFrameTick?: (state: GameState) => void;
-  private readonly onFPSUpdate?: (fps: number) => void;
-
-  constructor(options: GameEngineOptions) {
-    this.getGameState = options.getGameState;
-    this.renderer = options.renderer;
-    this.onFrameTick = options.onFrameTick;
-    this.onFPSUpdate = options.onFPSUpdate;
-
-    this.unsubDebug = options.debugMode.subscribe((debug) => {
-      this.renderer.setDebugMode(debug);
-      const state = this.getGameState();
-      if (state) {
-        this.renderer.render(state);
-      }
-    });
-  }
-
-  start(): void {
-    this.animationFrameId = requestAnimationFrame(() => this.tick());
-  }
-
-  stop(): void {
-    cancelAnimationFrame(this.animationFrameId);
-    this.unsubDebug?.();
-    this.unsubDebug = null;
-  }
-
-  private tick(): void {
-    const state = this.getGameState();
-    if (!state) {
-      this.animationFrameId = requestAnimationFrame(() => this.tick());
-      return;
-    }
-
-    this.fpsFrames++;
-    const now = performance.now();
-    if (now - this.fpsLastTime >= 1000) {
-      this.onFPSUpdate?.(this.fpsFrames);
-      this.fpsFrames = 0;
-      this.fpsLastTime = now;
-    }
-
-    const dt = this.lastFrameTime === 0
-      ? 1
-      : Math.min((now - this.lastFrameTime) / (1000 / 60), 3);
-    this.lastFrameTime = now;
-
+  /**
+   * 推进一帧模拟。原地修改 state，不返回新对象。
+   */
+  step(state: GameState, dt: number): void {
     updateTime(state.time, dt);
 
     const weatherChanged = updateWeather(state.weather, dt);
@@ -112,14 +54,5 @@ export class GameEngine {
       allIntents.push(...updateCatState(cat, stateCtx, dt));
     }
     resolveIntents(allIntents, state.cats);
-
-    this.renderer.render(state);
-
-    if (now - this.lastUiSync >= 200) {
-      this.lastUiSync = now;
-      this.onFrameTick?.(state);
-    }
-
-    this.animationFrameId = requestAnimationFrame(() => this.tick());
   }
 }

@@ -26,6 +26,14 @@
   let engine: GameEngine | null = null;
   let drag: DragController;
 
+  // 帧循环状态（rAF 驱动 / 帧计时 / FPS / UI 同步节流）
+  let animationFrameId = 0;
+  let fpsFrames = 0;
+  let fpsLastTime = 0;
+  let lastUiSync = 0;
+  let lastFrameTime = 0;
+  let unsubDebug: (() => void) | null = null;
+
   $effect(() => {
     const p = new URLSearchParams(location.search).get('debug');
     debugMode.set(p === 'true' || p === 'yes' || p === '1');
@@ -51,29 +59,34 @@
 
     centerCameraOnHouse();
 
-    engine = new GameEngine({
-      getGameState: () => get(gameState),
-      renderer,
-      debugMode,
-      onFPSUpdate: (fps) => currentFPS.set(fps),
-      onFrameTick: (state) => {
-        gameState.set(state);
-        const sel = get(selectedCat);
-        if (sel) {
-          selectedCat.set(sel);
-        }
-      },
+    engine = new GameEngine();
+
+    // debugMode 变化 -> 切渲染调试层并重绘（原由引擎订阅，现归 App 管理）
+    unsubDebug = debugMode.subscribe((debug) => {
+      if (!renderer) {
+        return;
+      }
+      renderer.setDebugMode(debug);
+      const s = get(gameState);
+      if (s) {
+        renderer.render(s);
+      }
     });
 
     const state = get(gameState);
     if (state) {
       renderer.render(state);
     }
-    engine.start();
+
+    // 启动帧循环
+    fpsLastTime = performance.now();
+    animationFrameId = requestAnimationFrame(tick);
   });
 
   onDestroy(() => {
-    engine?.stop();
+    cancelAnimationFrame(animationFrameId);
+    unsubDebug?.();
+    unsubDebug = null;
     canvas?.removeEventListener('mousedown', handleMouseDown);
     canvas?.removeEventListener('mousemove', handleMouseMove);
     canvas?.removeEventListener('mouseup', handleMouseUp);
@@ -83,6 +96,55 @@
     window.removeEventListener('resize', handleResize);
     renderer?.destroy();
   });
+
+  // --- 帧循环（rAF 驱动：推进模拟 + 渲染 + 节流同步 UI） ---
+  function tick(): void {
+    if (!engine || !renderer) {
+      animationFrameId = requestAnimationFrame(tick);
+      return;
+    }
+
+    const state = get(gameState);
+    if (!state) {
+      animationFrameId = requestAnimationFrame(tick);
+      return;
+    }
+
+    // FPS 计数：每秒上报一次
+    fpsFrames++;
+    const now = performance.now();
+    if (now - fpsLastTime >= 1000) {
+      currentFPS.set(fpsFrames);
+      fpsFrames = 0;
+      fpsLastTime = now;
+    }
+
+    // 帧间隔 dt：归一化到 60fps，上限 3 防卡顿跳跃
+    const dt = lastFrameTime === 0
+      ? 1
+      : Math.min((now - lastFrameTime) / (1000 / 60), 3);
+    lastFrameTime = now;
+
+    // 推进一帧模拟（原地修改 state）
+    engine.step(state, dt);
+
+    // 渲染
+    renderer.render(state);
+
+    // UI 同步：每 200ms 把状态推给 store。
+    // 同引用 re-set 触发订阅者刷新--InfoPanel 读的是引擎原地改的字段，
+    // 不 re-set 则 Svelte 感知不到变化。删除会导致面板不刷新。
+    if (now - lastUiSync >= 200) {
+      lastUiSync = now;
+      gameState.set(state);
+      const sel = get(selectedCat);
+      if (sel) {
+        selectedCat.set(sel);
+      }
+    }
+
+    animationFrameId = requestAnimationFrame(tick);
+  }
 
   // --- 输入处理（鼠标 / 键盘 / 视图） ---
   function handleMouseDown(e: MouseEvent): void {
