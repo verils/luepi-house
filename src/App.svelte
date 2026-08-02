@@ -182,7 +182,6 @@
   }
 
   function handleMouseLeave(): void {
-    drag.end();
     canvas.style.cursor = 'grab';
   }
 
