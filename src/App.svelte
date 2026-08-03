@@ -31,7 +31,6 @@
   let lastUiSync = 0;
   let unsubDebug: (() => void) | null = null;
 
-  let lastFrameTime = 0;
   let fpsMeter: FpsMeter;
   let fps = $state(0);
 
@@ -111,8 +110,10 @@
       return;
     }
 
-    // FPS 计数：每秒结算一次（窗口内未到结算点返回 null）
+    let lastFrameTime = 0;
     const now = performance.now();
+
+    // FPS 计数：每秒结算一次（窗口内未到结算点返回 null）
     const measured = fpsMeter.tick(now);
     if (measured !== null) {
       fps = measured;
