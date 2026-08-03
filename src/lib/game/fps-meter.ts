@@ -6,8 +6,8 @@
  * 只控制「多久报一次」，不影响精度：默认 1000ms 与原始内联逻辑等价。
  */
 export class FpsMeter {
+  lastTime: number;
   private frames = 0;
-  private lastTime: number;
 
   constructor(
     private readonly windowMs: number = 1000,

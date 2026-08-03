@@ -110,20 +110,17 @@
       return;
     }
 
-    let lastFrameTime = 0;
-    const now = performance.now();
-
     // FPS 计数：每秒结算一次（窗口内未到结算点返回 null）
+    const now = performance.now();
     const measured = fpsMeter.tick(now);
     if (measured !== null) {
       fps = measured;
     }
 
     // 帧间隔 dt：归一化到 60fps，上限 3 防卡顿跳跃
-    const dt = lastFrameTime === 0
+    const dt = fpsMeter.lastTime === 0
       ? 1
-      : Math.min((now - lastFrameTime) / (1000 / 60), 3);
-    lastFrameTime = now;
+      : Math.min((now - fpsMeter.lastTime) / (1000 / 60), 3);
 
     // 推进一帧模拟（原地修改 state）
     engine.step(state, dt);
