@@ -1,8 +1,20 @@
 <script lang="ts">
   import {onDestroy, onMount} from 'svelte';
   import {get} from 'svelte/store';
-  import {Camera, cycleTimeSpeed, GameRenderer, MAP_HEIGHT, MAP_WIDTH} from './lib/game';
-  import {GameEngine} from './lib/game/game-engine';
+  import {
+    Camera,
+    cycleTimeSpeed,
+    GameRenderer,
+    getWeatherName,
+    logSystemEvent,
+    MAP_HEIGHT,
+    MAP_WIDTH,
+    resolveIntents,
+    updateCatState,
+    updateTime,
+    updateWeather,
+  } from './lib/game';
+  import type {CatIntent, GameState, StateContext} from './lib/game';
   import {DragController} from './lib/game/drag-controller';
   import {FpsMeter} from './lib/game/fps-meter';
   import {getPhysicalWindowScreenSize} from './lib/game/screen';
@@ -23,7 +35,6 @@
   // 游戏对象定义
   let camera: Camera;
   let renderer: GameRenderer | null = null;
-  let engine: GameEngine | null = null;
   let drag: DragController;
 
   // 帧循环状态（rAF 驱动 / 帧计时 / FPS / UI 同步节流）
@@ -58,8 +69,6 @@
     window.addEventListener('resize', handleResize);
 
     centerCameraOnHouse();
-
-    engine = new GameEngine();
 
     // debugMode 变化 -> 切渲染调试层并重绘（原由引擎订阅，现归 App 管理）
     unsubDebug = debugMode.subscribe((debug) => {
@@ -97,9 +106,51 @@
     renderer?.destroy();
   });
 
+  // --- 游戏模拟（时间 / 天气 / 猫咪 AI / 意图解算） ---
+  function step(state: GameState, dt: number): void {
+    updateTime(state.time, dt);
+
+    const weatherChanged = updateWeather(state.weather, dt);
+    if (weatherChanged && state.eventLog) {
+      logSystemEvent(
+        state.eventLog,
+        'weather_change',
+        `天气变为${getWeatherName(state.weather.current)}`,
+        {weather: state.weather.current},
+        {
+          hour: state.time.hour,
+          minute: state.time.minute,
+          day: state.time.day,
+        },
+      );
+    }
+
+    const stateCtx: StateContext = {
+      shelters: state.shelters,
+      catBeds: state.catBeds,
+      furnitures: state.furnitures,
+      toys: state.toys,
+      solidObjects: state.solidObjects,
+      house: state.house,
+      allCats: state.cats,
+      eventLog: state.eventLog,
+      gameTime: {
+        hour: state.time.hour,
+        minute: state.time.minute,
+        day: state.time.day,
+      },
+    };
+
+    const allIntents: CatIntent[] = [];
+    for (const cat of state.cats) {
+      allIntents.push(...updateCatState(cat, stateCtx, dt));
+    }
+    resolveIntents(allIntents, state.cats);
+  }
+
   // --- 帧循环（rAF 驱动：推进模拟 + 渲染 + 节流同步 UI） ---
   function tick(): void {
-    if (!engine || !renderer) {
+    if (!renderer) {
       animationFrameId = requestAnimationFrame(tick);
       return;
     }
@@ -123,7 +174,7 @@
       : Math.min((now - fpsMeter.lastTime) / (1000 / 60), 3);
 
     // 推进一帧模拟（原地修改 state）
-    engine.step(state, dt);
+    step(state, dt);
 
     // 渲染
     renderer.render(state);
