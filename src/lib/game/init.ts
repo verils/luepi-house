@@ -1,23 +1,18 @@
+import { type GameState, type SolidObject, TILE_SIZE, } from './types';
 import {
-  TILE_SIZE,
-  type GameState,
-  type SolidObject,
-} from './types';
-import {
-  createDefaultLayout,
   computeHouseBounds,
-  createDefaultFurnitures,
-  createDefaultShelters,
   createDefaultCatBeds,
+  createDefaultFurnitures,
+  createDefaultLayout,
+  createDefaultShelters,
   createDefaultToys,
 } from '../config/map';
-import { CAT_CONFIGS, createCatFromConfig } from '../config/cats';
+import { CAT_CONFIGS, createCatFromConfig } from '../config';
 import { createTimeState } from './time-system';
 import { createEventLogState } from './event-log';
 import { createWeatherState } from './weather-system';
-import { TileMap } from './tile-map';
 
-function initCats(tileMap: TileMap) {
+function initCats() {
   // 将猫放在客厅区域的中间位置 (cols 1-38, rows 10-29)
   const T = TILE_SIZE;
   const livingRoomCenterX = 19 * T;
@@ -40,7 +35,7 @@ export function initGameState(): GameState {
   const catBeds = createDefaultCatBeds();
   const toys = createDefaultToys();
 
-  const cats = initCats(tileMap);
+  const cats = initCats();
   const time = createTimeState();
   const weather = createWeatherState();
   const eventLog = createEventLogState();
