@@ -1,12 +1,6 @@
 import {
-  MAP_COLS,
-  MAP_ROWS,
-  MAP_WIDTH,
-  MAP_HEIGHT,
   TILE_SIZE,
-  FloorType,
   type GameState,
-  type MapConfig,
   type SolidObject,
 } from './types';
 import {
@@ -16,7 +10,6 @@ import {
   createDefaultShelters,
   createDefaultCatBeds,
   createDefaultToys,
-  ROOMS,
 } from '../config/map';
 import { CAT_CONFIGS, createCatFromConfig } from '../config/cats';
 import { createTimeState } from './time-system';
@@ -47,21 +40,6 @@ export function initGameState(): GameState {
   const catBeds = createDefaultCatBeds();
   const toys = createDefaultToys();
 
-  const map: MapConfig = {
-    width: MAP_WIDTH,
-    height: MAP_HEIGHT,
-    house,
-    rooms: ROOMS,
-    shelters,
-    catBeds,
-    furnitures,
-    toys,
-    defaultFloor: tileMap.getTile(
-      Math.floor(MAP_COLS / 2),
-      Math.floor(MAP_ROWS / 2)
-    )?.floorType ?? FloorType.WOOD,
-  };
-
   const cats = initCats(tileMap);
   const time = createTimeState();
   const weather = createWeatherState();
@@ -75,7 +53,6 @@ export function initGameState(): GameState {
   ];
 
   return {
-    map,
     house,
     tileMap,
     cats,

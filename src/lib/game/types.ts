@@ -119,19 +119,6 @@ export interface Furniture extends SolidObject {
   wallPlaced: boolean;
 }
 
-// 地图配置接口
-export interface MapConfig {
-  width: number; // 地图总宽度
-  height: number; // 地图总高度
-  house: House; // 房屋区域（用于摄像机居中，不控制布局）
-  rooms: Room[]; // 房间列表
-  shelters: Shelter[]; // 庇护所列表
-  catBeds: CatBed[]; // 猫窝列表
-  furnitures: Furniture[]; // 家具列表
-  toys: Toy[]; // 玩具列表
-  defaultFloor: FloorType; // 默认地板类型
-}
-
 // 猫咪动作状态
 export type CatActionState =
   | 'idle'
@@ -223,7 +210,6 @@ export interface ChasePair {
 
 // 游戏状态接口
 export interface GameState {
-  map: MapConfig; // 地图配置
   house: House; // 房屋边界（用于摄像机居中）
   tileMap: TileMap; // 统一 tile 地图
   cats: Cat[];
