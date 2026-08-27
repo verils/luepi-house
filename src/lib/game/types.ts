@@ -208,16 +208,20 @@ export interface ChasePair {
   switchChance: number; // 反转追逐的概率
 }
 
-// 游戏状态接口
-export interface GameState {
+// 静态世界配置（初始化后不再变化）
+export interface WorldConfig {
   house: House; // 房屋边界（用于摄像机居中）
   tileMap: TileMap; // 统一 tile 地图
-  cats: Cat[];
   shelters: Shelter[];
   catBeds: CatBed[];
   furnitures: Furniture[]; // 家具列表
   toys: Toy[]; // 玩具列表
   solidObjects: SolidObject[]; // 所有可碰撞对象（墙壁碰撞 + 家具）
+}
+
+// 游戏状态接口（WorldConfig + 动态模拟字段的组装容器）
+export interface GameState extends WorldConfig {
+  cats: Cat[];
   time: TimeState; // 时间状态
   weather: WeatherState; // 天气状态
   eventLog: EventLogState; // 事件日志

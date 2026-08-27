@@ -14,19 +14,17 @@
     updateTime,
     updateWeather,
   } from './lib/game';
-  import type {CatIntent, GameState, StateContext} from './lib/game';
+  import type {CatIntent, StateContext} from './lib/game';
   import {DragController} from './lib/game/drag-controller';
   import {FpsMeter} from './lib/game/fps-meter';
   import {getPhysicalWindowScreenSize} from './lib/game/screen';
-  import {
-    debugMode,
-    deselectCat,
-    gameState,
-    initializeGameState,
-    selectCat,
-    selectedCat,
-    showCatInfo,
-  } from './lib/stores/gameStore';
+  import {catsStore} from './lib/stores/cats';
+  import {eventLogStore} from './lib/stores/eventLog';
+  import {initializeGame} from './lib/stores';
+  import {debugMode, deselectCat, selectCat, selectedCat, showCatInfo} from './lib/stores/selection';
+  import {timeStore} from './lib/stores/time';
+  import {weatherStore} from './lib/stores/weather';
+  import {getWorld} from './lib/stores/world';
   import InfoPanel from './InfoPanel.svelte';
 
   // 画布
@@ -51,7 +49,7 @@
   });
 
   onMount(() => {
-    initializeGameState();
+    initializeGame();
 
     resizeCanvas();
 
@@ -76,16 +74,11 @@
         return;
       }
       renderer.setDebugMode(debug);
-      const s = get(gameState);
-      if (s) {
-        renderer.render(s);
-      }
+      renderCurrentState();
     });
 
-    const state = get(gameState);
-    if (state) {
-      renderer.render(state);
-    }
+    // 首帧渲染
+    renderCurrentState();
 
     // 启动帧循环
     fpsMeter = new FpsMeter();
@@ -107,56 +100,55 @@
   });
 
   // --- 游戏模拟（时间 / 天气 / 猫咪 AI / 意图解算） ---
-  function step(state: GameState, dt: number): void {
-    updateTime(state.time, dt);
+  function step(dt: number): void {
+    const time = get(timeStore);
+    updateTime(time, dt);
 
-    const weatherChanged = updateWeather(state.weather, dt);
-    if (weatherChanged && state.eventLog) {
+    const weather = get(weatherStore);
+    const weatherChanged = updateWeather(weather, dt);
+    if (weatherChanged) {
+      const eventLog = get(eventLogStore);
       logSystemEvent(
-        state.eventLog,
+        eventLog,
         'weather_change',
-        `天气变为${getWeatherName(state.weather.current)}`,
-        {weather: state.weather.current},
+        `天气变为${getWeatherName(weather.current)}`,
+        {weather: weather.current},
         {
-          hour: state.time.hour,
-          minute: state.time.minute,
-          day: state.time.day,
+          hour: time.hour,
+          minute: time.minute,
+          day: time.day,
         },
       );
     }
 
+    const world = getWorld();
+    const cats = get(catsStore);
     const stateCtx: StateContext = {
-      shelters: state.shelters,
-      catBeds: state.catBeds,
-      furnitures: state.furnitures,
-      toys: state.toys,
-      solidObjects: state.solidObjects,
-      house: state.house,
-      allCats: state.cats,
-      eventLog: state.eventLog,
+      shelters: world.shelters,
+      catBeds: world.catBeds,
+      furnitures: world.furnitures,
+      toys: world.toys,
+      solidObjects: world.solidObjects,
+      house: world.house,
+      allCats: cats,
+      eventLog: get(eventLogStore),
       gameTime: {
-        hour: state.time.hour,
-        minute: state.time.minute,
-        day: state.time.day,
+        hour: time.hour,
+        minute: time.minute,
+        day: time.day,
       },
     };
 
     const allIntents: CatIntent[] = [];
-    for (const cat of state.cats) {
+    for (const cat of cats) {
       allIntents.push(...updateCatState(cat, stateCtx, dt));
     }
-    resolveIntents(allIntents, state.cats);
+    resolveIntents(allIntents, cats);
   }
 
   // --- 帧循环（rAF 驱动：推进模拟 + 渲染 + 节流同步 UI） ---
   function tick(): void {
     if (!renderer) {
-      animationFrameId = requestAnimationFrame(tick);
-      return;
-    }
-
-    const state = get(gameState);
-    if (!state) {
       animationFrameId = requestAnimationFrame(tick);
       return;
     }
@@ -173,18 +165,27 @@
       ? 1
       : Math.min((now - fpsMeter.lastTime) / (1000 / 60), 3);
 
-    // 推进一帧模拟（原地修改 state）
-    step(state, dt);
+    // 推进一帧模拟（原地修改 store 中的对象）
+    step(dt);
 
-    // 渲染
-    renderer.render(state);
+    // 渲染（用各 store 切片组装 GameState，纯引用、零拷贝）
+    renderer.render({
+      ...getWorld(),
+      cats: get(catsStore),
+      time: get(timeStore),
+      weather: get(weatherStore),
+      eventLog: get(eventLogStore),
+    });
 
-    // UI 同步：每 200ms 把状态推给 store。
+    // UI 同步：每 200ms 把状态推给各 store。
     // 同引用 re-set 触发订阅者刷新--InfoPanel 读的是引擎原地改的字段，
     // 不 re-set 则 Svelte 感知不到变化。删除会导致面板不刷新。
     if (now - lastUiSync >= 200) {
       lastUiSync = now;
-      gameState.set(state);
+      timeStore.set(get(timeStore));
+      weatherStore.set(get(weatherStore));
+      eventLogStore.set(get(eventLogStore));
+      catsStore.set(get(catsStore));
       const sel = get(selectedCat);
       if (sel) {
         selectedCat.set(sel);
@@ -196,16 +197,14 @@
 
   // --- 输入处理（鼠标 / 键盘 / 视图） ---
   function handleMouseDown(e: MouseEvent): void {
-    const state = get(gameState);
-    if (state) {
-      const worldPos = camera.screenToWorld(e.offsetX, e.offsetY);
-      for (const cat of state.cats) {
-        const dx = worldPos.x - (cat.x + cat.visualWidth / 2);
-        const dy = worldPos.y - (cat.y + cat.visualHeight / 2);
-        if (Math.sqrt(dx * dx + dy * dy) <= cat.interactionRadius) {
-          selectCat(cat);
-          return;
-        }
+    const cats = get(catsStore);
+    const worldPos = camera.screenToWorld(e.offsetX, e.offsetY);
+    for (const cat of cats) {
+      const dx = worldPos.x - (cat.x + cat.visualWidth / 2);
+      const dy = worldPos.y - (cat.y + cat.visualHeight / 2);
+      if (Math.sqrt(dx * dx + dy * dy) <= cat.interactionRadius) {
+        selectCat(cat);
+        return;
       }
     }
     deselectCat();
@@ -286,18 +285,20 @@
   }
 
   function renderCurrentState() {
-    const state = get(gameState);
-    if (state && renderer) {
-      renderer.render(state);
+    if (renderer) {
+      renderer.render({
+        ...getWorld(),
+        cats: get(catsStore),
+        time: get(timeStore),
+        weather: get(weatherStore),
+        eventLog: get(eventLogStore),
+      });
     }
   }
 
   function handleSpeedChange() {
-    const state = get(gameState);
-    if (!state) {
-      return;
-    }
-    state.time.speed = cycleTimeSpeed(state.time.speed);
+    const time = get(timeStore);
+    time.speed = cycleTimeSpeed(time.speed);
   }
 
   function centerCameraOnHouse() {
@@ -332,10 +333,10 @@
 
     <div class="time-panel">
       <div class="time-display">
-        {($gameState?.time?.hour ?? 8).toString().padStart(2, '0')} 时
+        {$timeStore?.hour ?? 8} 时
       </div>
       <button class="speed-btn" onclick={handleSpeedChange}>
-        {$gameState?.time?.speed ?? 1}x
+        {$timeStore?.speed ?? 1}x
       </button>
     </div>
 
