@@ -17,6 +17,7 @@
   import type {CatIntent, StateContext} from './lib/game';
   import {DragController} from './lib/game/drag-controller';
   import {FpsMeter} from './lib/game/fps-meter';
+  import {getPhysicalWindowScreenSize} from './lib/game/screen';
   import {catsStore} from './lib/stores/cats';
   import {eventLogStore} from './lib/stores/eventLog';
   import {initializeGame} from './lib/stores';
@@ -269,19 +270,17 @@
 
   function handleResize(): void {
     resizeCanvas();
-    centerCameraOnHouse();
     renderCurrentState();
   }
 
   function resizeCanvas() {
-    // const dpr = devicePixelRatio;
-    const dpr = 2;
-    canvas.width = MAP_WIDTH * dpr;
-    canvas.height = MAP_HEIGHT * dpr;
+    const size = getPhysicalWindowScreenSize();
+    canvas.width = size.width;
+    canvas.height = size.height;
 
     const ctx = canvas.getContext('2d');
     if (ctx) {
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
     }
   }
 
@@ -328,12 +327,7 @@
 </script>
 
 <div class="game-container">
-  <canvas
-    bind:this={canvas}
-    class="game-canvas"
-    style:width={MAP_WIDTH + 'px'}
-    style:height={MAP_HEIGHT + 'px'}
-  ></canvas>
+  <canvas bind:this={canvas} class="game-canvas"></canvas>
 
   <div class="ui-overlay">
     {#if $showCatInfo && $selectedCat}
@@ -378,14 +372,12 @@
     height: 100vh;
     overflow: hidden;
     background-color: #f0f0f0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
   }
 
   .game-canvas {
     display: block;
-    flex: none;
+    width: 100%;
+    height: 100%;
     cursor: grab;
   }
 
