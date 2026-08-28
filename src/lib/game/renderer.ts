@@ -180,7 +180,7 @@ export class GameRenderer {
       this.ctx.save();
       this.ctx.fillStyle = color;
       this.ctx.globalAlpha = opacity;
-      this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+      this.ctx.fillRect(0, 0, MAP_WIDTH, MAP_HEIGHT);
       this.ctx.restore();
     }
   }
@@ -192,7 +192,7 @@ export class GameRenderer {
     this.ctx.save();
     this.ctx.fillStyle = getWeatherBackgroundColor(weather);
     this.ctx.globalAlpha = 0.08;
-    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    this.ctx.fillRect(0, 0, MAP_WIDTH, MAP_HEIGHT);
     this.ctx.restore();
   }
 

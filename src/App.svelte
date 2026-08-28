@@ -17,7 +17,6 @@
   import type {CatIntent, StateContext} from './lib/game';
   import {DragController} from './lib/game/drag-controller';
   import {FpsMeter} from './lib/game/fps-meter';
-  import {getPhysicalWindowScreenSize} from './lib/game/screen';
   import {catsStore} from './lib/stores/cats';
   import {eventLogStore} from './lib/stores/eventLog';
   import {initializeGame} from './lib/stores';
@@ -270,17 +269,19 @@
 
   function handleResize(): void {
     resizeCanvas();
+    centerCameraOnHouse();
     renderCurrentState();
   }
 
   function resizeCanvas() {
-    const size = getPhysicalWindowScreenSize();
-    canvas.width = size.width;
-    canvas.height = size.height;
+    // const dpr = devicePixelRatio;
+    const dpr = 2;
+    canvas.width = MAP_WIDTH * dpr;
+    canvas.height = MAP_HEIGHT * dpr;
 
     const ctx = canvas.getContext('2d');
     if (ctx) {
-      ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
   }
 
@@ -302,8 +303,11 @@
   }
 
   function centerCameraOnHouse() {
-    camera.x = innerWidth / 2 - MAP_WIDTH / 2 * camera.zoom;
-    camera.y = innerHeight / 2 - MAP_HEIGHT / 2 * camera.zoom;
+    const dpr = devicePixelRatio;
+    const centerX = canvas.width / dpr / 2;
+    const centerY = canvas.height / dpr / 2;
+    camera.x = centerX - (MAP_WIDTH / 2) * camera.zoom;
+    camera.y = centerY - (MAP_HEIGHT / 2) * camera.zoom;
   }
 
   function resetCamera() {
@@ -324,7 +328,12 @@
 </script>
 
 <div class="game-container">
-  <canvas bind:this={canvas} class="game-canvas"></canvas>
+  <canvas
+    bind:this={canvas}
+    class="game-canvas"
+    style:width={MAP_WIDTH + 'px'}
+    style:height={MAP_HEIGHT + 'px'}
+  ></canvas>
 
   <div class="ui-overlay">
     {#if $showCatInfo && $selectedCat}
@@ -369,12 +378,14 @@
     height: 100vh;
     overflow: hidden;
     background-color: #f0f0f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .game-canvas {
     display: block;
-    width: 100%;
-    height: 100%;
+    flex: none;
     cursor: grab;
   }
 
