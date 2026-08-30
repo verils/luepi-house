@@ -197,8 +197,8 @@
 
   // --- 输入处理（鼠标 / 键盘 / 视图） ---
   function handleMouseDown(e: MouseEvent): void {
-    const cats = get(catsStore);
     const worldPos = camera.screenToWorld(e.offsetX, e.offsetY);
+    const cats = get(catsStore);
     for (const cat of cats) {
       const dx = worldPos.x - (cat.x + cat.visualWidth / 2);
       const dy = worldPos.y - (cat.y + cat.visualHeight / 2);
