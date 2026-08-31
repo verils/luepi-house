@@ -40,6 +40,10 @@
   let lastUiSync = 0;
   let unsubDebug: (() => void) | null = null;
 
+  // 键盘平移：记录按住的方向键，帧循环中按 dt 连续平移（短步高频、更平滑）
+  const pressedKeys: Record<string, boolean> = {};
+  const KEY_PAN_SPEED = 450; // 像素/秒
+
   let fpsMeter: FpsMeter;
   let fps = $state(0);
 
@@ -64,6 +68,8 @@
     canvas.addEventListener('mouseleave', handleMouseLeave);
     canvas.addEventListener('wheel', handleWheel, {passive: false});
     document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('keyup', handleKeyUp);
+    window.addEventListener('blur', handleBlur);
     window.addEventListener('resize', handleResize);
 
     centerCameraOnHouse();
@@ -95,6 +101,8 @@
     canvas?.removeEventListener('mouseleave', handleMouseLeave);
     canvas?.removeEventListener('wheel', handleWheel);
     document.removeEventListener('keydown', handleKeyDown);
+    document.removeEventListener('keyup', handleKeyUp);
+    window.removeEventListener('blur', handleBlur);
     window.removeEventListener('resize', handleResize);
     renderer?.destroy();
   });
@@ -168,6 +176,26 @@
     // 推进一帧模拟（原地修改 store 中的对象）
     step(dt);
 
+    // 键盘平移：方向向量归一化后按 dt 连续推进（斜向不加速）
+    let panX = 0;
+    let panY = 0;
+    if (pressedKeys['ArrowLeft']) {
+      panX += 1;
+    }
+    if (pressedKeys['ArrowRight']) {
+      panX -= 1;
+    }
+    if (pressedKeys['ArrowUp']) {
+      panY += 1;
+    }
+    if (pressedKeys['ArrowDown']) {
+      panY -= 1;
+    }
+    if (panX !== 0 || panY !== 0) {
+      const len = Math.hypot(panX, panY);
+      camera.pan((panX / len) * KEY_PAN_SPEED * dt, (panY / len) * KEY_PAN_SPEED * dt);
+    }
+
     // 渲染（用各 store 切片组装 GameState，纯引用、零拷贝）
     renderer.render({
       ...getWorld(),
@@ -239,19 +267,12 @@
   }
 
   function handleKeyDown(e: KeyboardEvent): void {
-    const panSpeed = 20;
     switch (e.key) {
       case 'ArrowUp':
-        camera.pan(0, panSpeed);
-        break;
       case 'ArrowDown':
-        camera.pan(0, -panSpeed);
-        break;
       case 'ArrowLeft':
-        camera.pan(panSpeed, 0);
-        break;
       case 'ArrowRight':
-        camera.pan(-panSpeed, 0);
+        pressedKeys[e.key] = true;
         break;
       case '+':
       case '=':
@@ -266,6 +287,16 @@
     }
     e.preventDefault();
     renderCurrentState();
+  }
+
+  function handleKeyUp(e: KeyboardEvent): void {
+    delete pressedKeys[e.key];
+  }
+
+  function handleBlur(): void {
+    for (const key of Object.keys(pressedKeys)) {
+      delete pressedKeys[key];
+    }
   }
 
   function handleResize(): void {
