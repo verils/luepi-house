@@ -42,7 +42,7 @@
 
   // 键盘平移：记录按住的方向键，帧循环中按 dt 连续平移（短步高频、更平滑）
   const pressedKeys: Record<string, boolean> = {};
-  const KEY_PAN_SPEED = 6; // 方向键移动速度：像素/秒
+  const KEY_PAN_SPEED = 6000; // 方向键移动速度：像素/秒
 
   let fpsMeter: FpsMeter;
   let fps = $state(0);
@@ -193,7 +193,9 @@
     }
     if (panX !== 0 || panY !== 0) {
       const len = Math.hypot(panX, panY);
-      camera.pan((panX / len) * KEY_PAN_SPEED * dt, (panY / len) * KEY_PAN_SPEED * dt);
+      const dx = (panX / len) * KEY_PAN_SPEED / 1000 * dt;
+      const dy = (panY / len) * KEY_PAN_SPEED / 1000 * dt;
+      camera.pan(dx, dy);
     }
 
     // 渲染（用各 store 切片组装 GameState，纯引用、零拷贝）
