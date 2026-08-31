@@ -42,7 +42,7 @@
 
   // 键盘平移：记录按住的方向键，帧循环中按 dt 连续平移（短步高频、更平滑）
   const pressedKeys: Record<string, boolean> = {};
-  const KEY_PAN_SPEED = 450; // 像素/秒
+  const KEY_PAN_SPEED = 6; // 方向键移动速度：像素/秒
 
   let fpsMeter: FpsMeter;
   let fps = $state(0);
