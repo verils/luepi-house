@@ -61,6 +61,7 @@
     renderer = new GameRenderer(canvas, camera, get(debugMode));
 
     drag = new DragController();
+
     canvas.style.cursor = 'grab';
     canvas.addEventListener('mousedown', handleMouseDown);
     canvas.addEventListener('mousemove', handleMouseMove);
