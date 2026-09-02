@@ -368,15 +368,6 @@
       <InfoPanel cat={$selectedCat} onclose={() => deselectCat()}/>
     {/if}
 
-    <div class="time-panel">
-      <div class="time-display">
-        {$timeStore?.hour ?? 8} 时
-      </div>
-      <button class="speed-btn" onclick={handleSpeedChange}>
-        {$timeStore?.speed ?? 1}x
-      </button>
-    </div>
-
     <div class="fps-counter">
       FPS: {fps}
     </div>
