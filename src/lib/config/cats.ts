@@ -1,5 +1,5 @@
-import { CAT_VISUAL_SIZE } from '../game/types';
-import type { Cat, CatPersonality } from '../game/types';
+import { CAT_VISUAL_SIZE } from '../game';
+import type { Cat, CatPersonality } from '../game';
 import { createPersonality } from '../game/personality';
 import { createMoodState } from '../game/mood-system';
 import { createEnergy } from '../game/cat-energy';
