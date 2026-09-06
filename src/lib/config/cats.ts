@@ -2,7 +2,7 @@ import { CAT_VISUAL_SIZE } from '../game';
 import type { Cat, CatPersonality } from '../game';
 import { createPersonality } from '../game';
 import { createMoodState } from '../game';
-import { createEnergy } from '../game/cat-energy';
+import { createEnergy } from '../game';
 import { createSatiety } from '../game/cat-satiety';
 
 export interface CatConfig {
