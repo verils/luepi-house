@@ -4,6 +4,7 @@
   import {
     Camera,
     cycleTimeSpeed,
+    formatGameTime,
     GameRenderer,
     getWeatherName,
     logSystemEvent,
@@ -37,6 +38,7 @@
 
   // 帧循环状态（rAF 驱动 / 帧计时 / FPS / UI 同步节流）
   let animationFrameId = 0;
+  let lastFrameTime = 0; // 上一帧时间戳，专用于 dt 计算
   let lastUiSync = 0;
   let unsubDebug: (() => void) | null = null;
 
@@ -89,6 +91,7 @@
 
     // 启动帧循环
     fpsMeter = new FpsMeter();
+    lastFrameTime = performance.now();
     animationFrameId = requestAnimationFrame(tick);
   });
 
@@ -170,9 +173,11 @@
     }
 
     // 帧间隔 dt：归一化到 60fps，上限 3 防卡顿跳跃
-    const dt = fpsMeter.lastTime === 0
+    // 用独立的 lastFrameTime 计算；fpsMeter.lastTime 每秒才结算一次，不能当上一帧时间用
+    const dt = lastFrameTime === 0
       ? 1
-      : Math.min((now - fpsMeter.lastTime) / (1000 / 60), 3);
+      : Math.min((now - lastFrameTime) / (1000 / 60), 3);
+    lastFrameTime = now;
 
     // 推进一帧模拟（原地修改 store 中的对象）
     step(dt);
@@ -333,6 +338,7 @@
   function handleSpeedChange() {
     const time = get(timeStore);
     time.speed = cycleTimeSpeed(time.speed);
+    timeStore.set(time);
   }
 
   function centerCameraOnHouse() {
@@ -364,6 +370,15 @@
   <canvas bind:this={canvas} class="game-canvas"></canvas>
 
   <div class="ui-overlay">
+    <div class="time-panel">
+      <div class="time-display">
+        {formatGameTime($timeStore.hour, $timeStore.minute)}
+      </div>
+      <button class="speed-btn" onclick={handleSpeedChange}>
+        {$timeStore.speed}x
+      </button>
+    </div>
+
     {#if $showCatInfo && $selectedCat}
       <InfoPanel cat={$selectedCat} onclose={() => deselectCat()}/>
     {/if}
@@ -443,6 +458,7 @@
     padding: 8px 12px;
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    pointer-events: auto;
   }
 
   .time-display {
